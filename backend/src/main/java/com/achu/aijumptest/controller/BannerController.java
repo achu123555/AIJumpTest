@@ -31,16 +31,27 @@ public class BannerController {
 
     @GetMapping("list")
     @Operation(summary = "获取所有轮播图", description = "获取所有轮播图,包括启用和禁用的,供后台管理") //API描述
-    public Result<List<Banner>> list(){
-        //1.包装查询条件
+    public Result<List<Banner>> getAllBanners(){
+        //1.包装查询条件(sort字段升序)
         LambdaQueryWrapper<Banner> lambdaQueryWrapper = new LambdaQueryWrapper<>();
         lambdaQueryWrapper.orderByAsc(Banner::getSortOrder);//根据排序字段升序排序
-        //2.查询所有符合条件的集合
+        //2.返回符合查询条件的集合
         List<Banner> bannerList = bannerService.list(lambdaQueryWrapper);
-        //3.返回结果
+        //3.包装结果返回
         log.info("查询所有轮播图业务执行成功,结果为:{}",bannerList);
         return Result.success(bannerList);
     }
 
-
+    @GetMapping
+    @Operation(summary = "获取启用的轮播图",description = "获取状态为激活的轮播图,供前端首页展示使用")
+    public Result<List<Banner>> getActiveBanners(){
+        //1.包装查询条件(active==1,sort字段升序)
+        LambdaQueryWrapper<Banner> lambdaQueryWrapper = new LambdaQueryWrapper<>();
+        lambdaQueryWrapper.eq(Banner::getIsActive,true);
+        lambdaQueryWrapper.orderByAsc(Banner::getSortOrder);
+        //2.返回符合查询条件的集合
+        List<Banner> bannerList = bannerService.list(lambdaQueryWrapper);
+        //3.包装结果返回
+        return Result.success(bannerList);
+    }
 }

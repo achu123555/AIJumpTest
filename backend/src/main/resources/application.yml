@@ -4,10 +4,6 @@ server:
 
 
 spring:
-  #json格式配置
-  jackson:
-    date-format: yyyy-MM-dd HH:mm:ss
-    time-zone: GMT+8
   #数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
