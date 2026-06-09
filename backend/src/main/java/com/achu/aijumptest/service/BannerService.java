@@ -1,5 +1,8 @@
 package com.achu.aijumptest.service;
 
+import com.achu.aijumptest.entity.Banner;
+import com.baomidou.mybatisplus.extension.service.IService;
+
 /**
  * projectName: com.achu.aijumptest.service.BannerService
  *
@@ -7,5 +10,5 @@ package com.achu.aijumptest.service;
  * description: 轮播图业务层
  */
 
-public interface BannerService {
+public interface BannerService extends IService<Banner> {
 }

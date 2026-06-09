@@ -1,6 +1,9 @@
 package com.achu.aijumptest.service.impl;
 
+import com.achu.aijumptest.entity.Banner;
+import com.achu.aijumptest.mapper.BannerMapper;
 import com.achu.aijumptest.service.BannerService;
+import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.stereotype.Service;
 
 /**
@@ -11,5 +14,5 @@ import org.springframework.stereotype.Service;
  */
 
 @Service
-public class BannerServiceImpl implements BannerService {
+public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> implements BannerService {
 }
