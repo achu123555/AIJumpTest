@@ -36,5 +36,5 @@ public class BaseEntity implements Serializable {
     @Schema(description = "逻辑删除")
     @TableLogic //开启mp逻辑删除
     @JsonIgnore //不返回和不接收该字段的json
-    private Byte isDeleted;
+    private Boolean isDeleted;
 }

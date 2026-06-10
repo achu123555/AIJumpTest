@@ -13,7 +13,7 @@ import lombok.Getter;
 @Getter
 @AllArgsConstructor
 public enum ResultCode {
-    SUCCESS(200, "success"),
+    SUCCESS(200, "操作成功"),
     BAD_REQUEST(400, "请求参数错误"),
     UNAUTHORIZED(401, "未登录或 token 已过期"),
     FORBIDDEN(403, "没有操作权限"),

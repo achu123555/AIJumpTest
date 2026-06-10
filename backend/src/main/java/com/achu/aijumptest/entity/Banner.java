@@ -27,5 +27,5 @@ public class Banner extends BaseEntity{
     @Schema(description = "轮播图排序字段")
     private Integer sortOrder;
     @Schema(description = "轮播图激活状态")
-    private Byte isActive;
+    private Boolean isActive;
 }
