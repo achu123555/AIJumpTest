@@ -78,4 +78,21 @@ public class BannerController {
         log.info("切换轮播图状态失败,计划目标状态为:{}",isActive);
         return Result.error("切换轮播图状态失败");
     }
+
+    @DeleteMapping("delete/{id}")
+    @Operation(summary = "删除轮播图接口",description = "此接口为供后台使用的删除轮播图的接口")
+    public Result<Void> deleteBanner(
+        @Parameter(description = "轮播图ID") @PathVariable("id") Long id
+    ){
+        //1.执行删除
+        boolean remove = bannerService.removeById(id);
+        //2.打印日志,返回结果
+        if(remove){
+            log.info("删除成功！本次删除的轮播图id为{}",id);
+            return Result.success();
+        }
+
+        log.info("删除失败！本次删除失败的轮播图id为{}",id);
+        return Result.error("删除失败");
+    }
 }
