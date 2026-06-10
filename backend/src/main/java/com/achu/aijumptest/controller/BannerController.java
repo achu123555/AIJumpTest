@@ -31,8 +31,8 @@ public class BannerController {
     @Autowired
     private BannerService bannerService;
 
-    @GetMapping("list")
     @Operation(summary = "获取所有轮播图", description = "获取所有轮播图,包括启用和禁用的,供后台管理") //API描述
+    @GetMapping("list")
     public Result<List<Banner>> getAllBanners(){
         //1.包装查询条件(sort字段升序)
         LambdaQueryWrapper<Banner> lambdaQueryWrapper = new LambdaQueryWrapper<>();
@@ -44,8 +44,8 @@ public class BannerController {
         return Result.success(bannerList);
     }
 
-    @GetMapping("active")
     @Operation(summary = "获取启用的轮播图",description = "获取状态为激活的轮播图,供前端首页展示使用")
+    @GetMapping("active")
     public Result<List<Banner>> getActiveBanners(){
         //1.包装查询条件(active==1,sort字段升序)
         LambdaQueryWrapper<Banner> lambdaQueryWrapper = new LambdaQueryWrapper<>();
@@ -58,8 +58,8 @@ public class BannerController {
         return Result.success(bannerList);
     }
 
-    @PutMapping("toggle/{id}")
     @Operation(summary = "切换轮播图状态接口",description = "供后台使用的切换轮播图的状态的接口")
+    @PutMapping("toggle/{id}")
     public Result<Void> toggleBannerStatus(
             @Parameter(description = "轮播图ID") @PathVariable("id") Long id,
             @Parameter(description = "轮播图状态") @RequestParam("isActive") Boolean isActive //要求前端必须传递
@@ -79,9 +79,9 @@ public class BannerController {
         return Result.error("切换轮播图状态失败");
     }
 
-    @DeleteMapping("delete/{id}")
     @Operation(summary = "删除轮播图接口",description = "此接口为供后台使用的删除轮播图的接口")
-    public Result<Void> deleteBanner(
+    @DeleteMapping("delete/{id}")
+    public Result<Void> deleteBannerById(
         @Parameter(description = "轮播图ID") @PathVariable("id") Long id
     ){
         //1.执行删除
@@ -94,5 +94,22 @@ public class BannerController {
 
         log.info("删除失败！本次删除失败的轮播图id为{}",id);
         return Result.error("删除失败");
+    }
+
+    @Operation(summary = "根据ID查询轮播图接口",description = "根据ID获取单个轮播图的详情信息")
+    @GetMapping("{id}")
+    public Result<Banner> getBannerById(
+            @Parameter(description = "轮播图ID") @PathVariable("id") Long id
+    ){
+        //1.执行查询
+        log.info("开始根据ID查询轮播图,ID为:{}",id);
+        Banner banner = bannerService.getById(id);
+        //2.打印日志,返回结果
+        if(banner == null){
+            log.info("根据ID未查找到指定轮播图,指定ID轮播图不存在。id为:{}",id);
+            return Result.error("指定id的轮播图不存在");
+        }
+        log.info("根据ID查询轮播图成功！结果为:{}",banner);
+        return Result.success(banner);
     }
 }
