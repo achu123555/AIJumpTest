@@ -10,6 +10,10 @@ spring:
     url: "jdbc:mysql://localhost:3306/ai_jump_test"
     username: root
     password: 5201314
+  servlet:
+    multipart:
+      max-request-size: 10MB
+      max-file-size: 2MB
 
 #mybatis-plus配置
 mybatis-plus:
@@ -18,5 +22,12 @@ mybatis-plus:
     map-underscore-to-camel-case: true
   mapper-locations: classpath*:/mapper/**/*.xml
 
-    
+#阿里云OSS参数
+aliyun:
+  oss:
+    endpoint: https://oss-cn-beijing.aliyuncs.com
+    bucketName: ai-jumptest
 
+#关闭异常处理器响应体通用重写，绕过报错代码
+springdoc:
+  override-with-generic-response: false
