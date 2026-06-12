@@ -19,4 +19,6 @@ public interface BannerService extends IService<Banner> {
      * @return 图片回显的地址
      */
     String uploadBannerImage(MultipartFile file) throws Exception;
+
+    void saveBanner(Banner banner);
 }

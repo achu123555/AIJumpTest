@@ -1,6 +1,10 @@
-# Vue3 + Element Plus 轮播图管理端
+# Vue3 + Element Plus 学生端 + 管理端
 
-这是一个按截图风格搭建的前端管理端 Demo，已完成「轮播图管理」模块，其他菜单暂时显示「待开发」。
+项目已接入 Spring Boot 后端轮播图接口，包含：
+
+- 学生端首页：`/home`
+- 管理端轮播图管理：`/admin/banner-manage`
+- 其他管理模块：暂时显示「待开发」
 
 ## 技术栈
 
@@ -9,44 +13,165 @@
 - Vue Router
 - Element Plus
 - @element-plus/icons-vue
+- fetch 请求封装，不依赖 axios
 
 ## 运行方式
+
+先启动后端，默认后端地址：
+
+```text
+http://localhost:8080
+```
+
+再启动前端：
 
 ```bash
 npm install
 npm run dev
 ```
 
-启动后访问：
+启动后访问学生端：
+
+```text
+http://localhost:3001/home
+```
+
+管理端地址：
 
 ```text
 http://localhost:3001/admin/banner-manage
 ```
 
-## 已完成内容
+## 已接入的后端接口
 
-- 管理端左侧菜单布局
-- 顶部栏和主内容区
-- 轮播图列表展示
-- 新增轮播图
-- 编辑轮播图
-- 删除轮播图
-- 启用 / 禁用轮播图
-- 排序字段
-- 图片上传本地预览
-- 外部图片 URL 输入
-- 跳转链接格式校验
-- localStorage 本地持久化
+### 学生端首页轮播图
 
-## 说明
-
-当前项目是纯前端版本，没有接后端接口。
-
-图片上传这里为了方便本地演示，使用 `FileReader` 转成 Base64 存到 localStorage。正式项目中应该把 `handleFileChange` 里的逻辑替换成真实上传接口，例如：
-
-```js
-// const res = await uploadBannerImage(rawFile)
-// form.imageUrl = res.data.url
+```text
+GET /api/banners/active
 ```
 
-轮播图数据正式接后端时，可以把 `src/utils/storage.js` 替换成 axios 请求接口。
+用途：只获取启用状态的轮播图，并按 `sortOrder` 升序展示。
+
+### 管理端轮播图列表
+
+```text
+GET /api/banners/list
+```
+
+用途：管理端展示全部轮播图，包括启用和禁用状态。
+
+### 根据 ID 查询轮播图详情
+
+```text
+GET /api/banners/{id}
+```
+
+用途：点击编辑时获取单条轮播图详情。
+
+### 上传轮播图图片
+
+```text
+POST /api/banners/upload-image
+Content-Type: multipart/form-data
+file: 图片文件
+```
+
+用途：把图片上传到阿里云 OSS，后端返回可访问的图片 URL。
+
+### 新增轮播图
+
+```text
+POST /api/banners/add
+Content-Type: application/json
+```
+
+请求体示例：
+
+```json
+{
+  "title": "Java + AI 应用开发",
+  "description": "适合放在学生端首页展示",
+  "imageUrl": "https://xxx.oss-cn-beijing.aliyuncs.com/banner/xxx.jpg",
+  "linkUrl": "https://www.atguigu.com",
+  "sortOrder": 1,
+  "isActive": true
+}
+```
+
+### 更新轮播图
+
+```text
+PUT /api/banners/update
+Content-Type: application/json
+```
+
+请求体示例：
+
+```json
+{
+  "id": 1,
+  "title": "更新后的标题",
+  "description": "更新后的描述",
+  "imageUrl": "https://xxx.oss-cn-beijing.aliyuncs.com/banner/xxx.jpg",
+  "linkUrl": "",
+  "sortOrder": 1,
+  "isActive": true
+}
+```
+
+### 删除轮播图
+
+```text
+DELETE /api/banners/delete/{id}
+```
+
+### 管理端轮播图状态切换
+
+```text
+PUT /api/banners/toggle/{id}?isActive=true
+PUT /api/banners/toggle/{id}?isActive=false
+```
+
+## 主要文件
+
+```text
+src/api/request.js          fetch 统一请求封装
+src/api/banner.js           轮播图接口统一管理
+src/views/Home.vue          学生端首页，展示启用轮播图
+src/views/BannerManage.vue  管理端轮播图完整 CRUD 页面
+src/router/index.js         路由配置
+vite.config.js              开发代理配置
+```
+
+## 返回格式要求
+
+前端默认适配这种统一返回格式：
+
+```json
+{
+  "code": 200,
+  "message": "success",
+  "data": [
+    {
+      "id": 1,
+      "title": "轮播图标题",
+      "description": "轮播图描述",
+      "imageUrl": "图片地址",
+      "linkUrl": "跳转地址",
+      "sortOrder": 1,
+      "isActive": true,
+      "createTime": "2026-06-09T13:47:00"
+    }
+  ]
+}
+```
+
+## 代理说明
+
+开发环境通过 `vite.config.js` 代理接口：
+
+```text
+/api -> http://localhost:8080
+```
+
+如果数据库里的图片地址是 `/uploads/xxx`、`/upload/xxx`、`/files/xxx`、`/images/xxx`，Vite 也已经配置了代理，会转发到后端。

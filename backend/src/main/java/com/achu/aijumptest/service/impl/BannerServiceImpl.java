@@ -22,6 +22,8 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> impleme
 
     @Autowired
     private AliyunOssService aliyunOssService;
+    @Autowired
+    private BannerMapper bannerMapper;
 
     @Override
     public String uploadBannerImage(MultipartFile file) throws Exception {
@@ -43,5 +45,22 @@ public class BannerServiceImpl extends ServiceImpl<BannerMapper, Banner> impleme
 
         //4.返回地址
         return returnUrl;
+    }
+
+    @Override
+    public void saveBanner(Banner banner) {
+        //参数判空：sort为空默认为5
+        if(banner.getSortOrder() == null){
+            banner.setSortOrder(5);
+        }
+        //参数判空：isActive为空默认为true
+        if(banner.getIsActive() == null){
+            banner.setIsActive(true);
+        }
+        //保存轮播图
+        int insert = bannerMapper.insert(banner);
+        if(insert != 1){
+            throw new BusinessException("保存轮播图失败");
+        }
     }
 }

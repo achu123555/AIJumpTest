@@ -3,12 +3,9 @@ package com.achu.aijumptest.controller;
 import com.achu.aijumptest.common.Result;
 import com.achu.aijumptest.entity.Banner;
 import com.achu.aijumptest.exception.BusinessException;
-import com.achu.aijumptest.service.AliyunOssService;
-import com.achu.aijumptest.service.impl.AliyunOssServiceImpl;
 import com.achu.aijumptest.service.BannerService;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
-import com.sun.source.doctree.SummaryTree;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -17,7 +14,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.io.InputStream;
+
 import java.util.List;
 
 /**
@@ -34,10 +31,8 @@ public class BannerController {
 
     @Autowired
     private BannerService bannerService;
-    @Autowired
-    private AliyunOssService aliyunOssService;
 
-    @Operation(summary = "获取所有轮播图", description = "获取所有轮播图,包括启用和禁用的,供后台管理") //API描述
+    @Operation(summary = "获取所有轮播图接口", description = "获取所有轮播图,包括启用和禁用的,供后台管理") //API描述
     @GetMapping("/list")
     public Result<List<Banner>> getAllBanners(){
         //1.包装查询条件(sort字段升序)
@@ -50,7 +45,7 @@ public class BannerController {
         return Result.success(bannerList);
     }
 
-    @Operation(summary = "获取启用的轮播图",description = "获取状态为激活的轮播图,供前端首页展示使用")
+    @Operation(summary = "获取启用的轮播图接口",description = "获取状态为激活的轮播图,供前端首页展示使用")
     @GetMapping("/active")
     public Result<List<Banner>> getActiveBanners(){
         //1.包装查询条件(active==1,sort字段升序)
@@ -77,12 +72,10 @@ public class BannerController {
         //2.执行更新
         boolean update = bannerService.update(updateWrapper);
         //3.返回结果
-        if(update){
-            log.info("切换轮播图状态成功,此时状态为:{}",isActive);
-            return Result.success();
+        if(!update){
+            throw new BusinessException("更新轮播图失败！");
         }
-        log.info("切换轮播图状态失败,计划目标状态为:{}",isActive);
-        return Result.error("切换轮播图状态失败");
+        return Result.success();
     }
 
     @Operation(summary = "删除轮播图接口",description = "此接口为供后台使用的删除轮播图的接口")
@@ -91,15 +84,13 @@ public class BannerController {
         @Parameter(description = "轮播图ID") @PathVariable("id") Long id
     ){
         //1.执行删除
+        log.info("开始删除轮播图,id为:{}",id);
         boolean remove = bannerService.removeById(id);
         //2.打印日志,返回结果
-        if(remove){
-            log.info("删除成功！本次删除的轮播图id为{}",id);
-            return Result.success();
+        if(!remove){
+            throw new BusinessException("删除轮播图失败！");
         }
-
-        log.info("删除失败！本次删除失败的轮播图id为{}",id);
-        return Result.error("删除失败");
+        return Result.success();
     }
 
     @Operation(summary = "根据ID查询轮播图接口",description = "根据ID获取单个轮播图的详情信息")
@@ -112,10 +103,8 @@ public class BannerController {
         Banner banner = bannerService.getById(id);
         //2.打印日志,返回结果
         if(banner == null){
-            log.warn("根据ID未查找到指定轮播图,指定ID轮播图不存在。id为:{}",id);
             throw new BusinessException("指定ID轮播图不存在。");
         }
-        log.info("根据ID查询轮播图成功！结果为:{}",banner);
         return Result.success(banner);
     }
 
@@ -131,7 +120,29 @@ public class BannerController {
         String returnUrl = bannerService.uploadBannerImage(file);
 
         //2.返回可访问的图片URL
-        log.info("文件上传成功~,回显地址为:{}",returnUrl);
         return Result.success(returnUrl);
+    }
+
+    @Operation(summary = "保存轮播图接口",description = "保存填写的轮播图信息和上传的轮播图")
+    @PostMapping("/add")
+    public Result<Void> addBanner(@RequestBody Banner banner){ //RequestBody的参数文档自动解析实体类的@Schema注解
+        //1.执行保存操作
+        log.info("开始保存轮播图~,接收的参数为：{}",banner);
+        bannerService.saveBanner(banner);
+        //2.返回结果
+        return Result.success();
+    }
+
+    @Operation(summary = "更新轮播图接口",description = "供后台使用的更新轮播图的详细信息接口")
+    @PutMapping("/update")
+    public Result<Void> updateBanner(@RequestBody Banner banner){
+        //1.执行更新操作
+        log.info("开始更新轮播图:{}",banner);
+        boolean update = bannerService.updateById(banner);
+        //2.返回执行结果
+        if(!update){
+            throw new BusinessException("更新轮播图失败");
+        }
+        return Result.success();
     }
 }

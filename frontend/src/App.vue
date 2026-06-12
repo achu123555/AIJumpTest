@@ -1,5 +1,5 @@
 <template>
-  <el-container class="admin-shell">
+  <el-container v-if="showAdminLayout" class="admin-shell">
     <el-aside class="admin-aside" width="220px">
       <div class="logo-row">
         <el-icon class="logo-icon"><Grid /></el-icon>
@@ -14,6 +14,10 @@
         text-color="#1f2329"
         active-text-color="#2674ff"
       >
+        <el-menu-item index="/home">
+          <el-icon><House /></el-icon>
+          <span>学生端首页</span>
+        </el-menu-item>
         <el-menu-item index="/admin/question-manage">
           <el-icon><Document /></el-icon>
           <span>题目管理</span>
@@ -55,7 +59,8 @@
           <el-icon><Grid /></el-icon>
         </div>
         <div class="header-right">
-          <el-tag type="info" effect="plain">本地演示版</el-tag>
+          <el-button size="small" plain @click="router.push('/home')">查看学生端</el-button>
+          <el-tag type="info" effect="plain">后端接口版</el-tag>
         </div>
       </el-header>
 
@@ -64,16 +69,20 @@
       </el-main>
     </el-container>
   </el-container>
+
+  <router-view v-else />
 </template>
 
 <script setup>
-import { useRoute } from 'vue-router'
+import { computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import {
   Bell,
   Collection,
   Document,
   Folder,
   Grid,
+  House,
   Picture,
   Tickets,
   Trophy,
@@ -81,6 +90,8 @@ import {
 } from '@element-plus/icons-vue'
 
 const route = useRoute()
+const router = useRouter()
+const showAdminLayout = computed(() => route.path.startsWith('/admin'))
 </script>
 
 <style scoped>

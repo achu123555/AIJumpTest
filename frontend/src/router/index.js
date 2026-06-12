@@ -1,4 +1,5 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import Home from '../views/Home.vue'
 import BannerManage from '../views/BannerManage.vue'
 import Placeholder from '../views/Placeholder.vue'
 
@@ -13,7 +14,8 @@ const placeholderRoutes = [
 ]
 
 const routes = [
-  { path: '/', redirect: '/admin/banner-manage' },
+  { path: '/', redirect: '/home' },
+  { path: '/home', name: 'Home', component: Home, meta: { title: '学生端首页' } },
   {
     path: '/admin',
     redirect: '/admin/banner-manage',
@@ -27,12 +29,16 @@ const routes = [
       }))
     ]
   },
-  { path: '/:pathMatch(.*)*', redirect: '/admin/banner-manage' }
+  { path: '/:pathMatch(.*)*', redirect: '/home' }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+router.afterEach(to => {
+  document.title = to.meta?.title ? `${to.meta.title} - 智学平台` : '智学平台'
 })
 
 export default router
