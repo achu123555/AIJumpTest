@@ -24,12 +24,12 @@ public class BaseEntity implements Serializable {
     private Long id;
 
     @Schema(description = "创建时间")
-    @JsonFormat(pattern = "yyyy:MM:dd HH:mm:ss",timezone = "GMT+8") //格式化时间和调整时区
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",timezone = "GMT+8") //格式化时间和调整时区
     @TableField(fill = FieldFill.INSERT) //mp自动填充参数,发生插入动作触发
     private LocalDateTime createTime;
 
     @Schema(description = "更新时间")
-    @JsonFormat(pattern = "yyyy:MM:dd HH:mm:ss",timezone = "GMT+8") //格式化时间和调整时区
+    @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",timezone = "GMT+8") //格式化时间和调整时区
     @TableField(fill=FieldFill.INSERT_UPDATE)//mp自动填充参数,发生插入和更新动作触发
     private LocalDateTime updateTime;
 

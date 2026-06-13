@@ -38,7 +38,7 @@ public class Knife4jConfiguration {
     }
 
     /**
-     *   配置接口分组：默认核心业务分组
+     *   配置接口分组：轮播图业务分组
      */
     @Bean
     public GroupedOpenApi bannerApi() {
@@ -47,6 +47,19 @@ public class Knife4jConfiguration {
                 .group("轮播图管理接口")
                 //通过路由来匹配
                 .pathsToMatch("/api/banners/**")
+                .build();
+    }
+
+    /**
+     *   配置接口分组：题目分类业务分组
+     */
+    @Bean
+    public GroupedOpenApi categoryApi() {
+        return GroupedOpenApi.builder()
+                //接口名
+                .group("题目分类管理接口")
+                //通过路由来匹配
+                .pathsToMatch("/api/categories/**")
                 .build();
     }
 }
