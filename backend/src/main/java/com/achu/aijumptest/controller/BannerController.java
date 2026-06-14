@@ -32,6 +32,10 @@ public class BannerController {
     @Autowired
     private BannerService bannerService;
 
+    /**
+     * 查询所有轮播图(逻辑删除 = 0)
+     * @return 轮播图列表
+     */
     @Operation(summary = "获取所有轮播图接口", description = "获取所有轮播图,包括启用和禁用的,供后台管理") //API描述
     @GetMapping("/list")
     public Result<List<Banner>> getAllBanners(){
@@ -45,6 +49,10 @@ public class BannerController {
         return Result.success(bannerList);
     }
 
+    /**
+     * 查询启用的轮播图(isActive = 1)
+     * @return 启用录播图列表
+     */
     @Operation(summary = "获取启用的轮播图接口",description = "获取状态为激活的轮播图,供前端首页展示使用")
     @GetMapping("/active")
     public Result<List<Banner>> getActiveBanners(){
@@ -59,6 +67,12 @@ public class BannerController {
         return Result.success(bannerList);
     }
 
+    /**
+     * 指定id切换轮播图状态(isActive = 0/1)
+     * @param id 轮播图主键id
+     * @param isActive 轮播图激活状态 0/1
+     * @return 操作结果
+     */
     @Operation(summary = "切换轮播图状态接口",description = "供后台使用的切换轮播图的状态的接口")
     @PutMapping("/toggle/{id}")
     public Result<Void> toggleBannerStatus(
@@ -78,6 +92,11 @@ public class BannerController {
         return Result.success();
     }
 
+    /**
+     * 指定id删除轮播图
+     * @param id 轮播图id
+     * @return 操作结果
+     */
     @Operation(summary = "删除轮播图接口",description = "此接口为供后台使用的删除轮播图的接口")
     @DeleteMapping("/delete/{id}")
     public Result<Void> deleteBannerById(
@@ -93,6 +112,11 @@ public class BannerController {
         return Result.success();
     }
 
+    /**
+     * 根据id查询轮播图详细信息
+     * @param id 轮播图id
+     * @return 单个轮播图
+     */
     @Operation(summary = "根据ID查询轮播图接口",description = "根据ID获取单个轮播图的详情信息")
     @GetMapping("/{id}")
     public Result<Banner> getBannerById(
@@ -108,6 +132,12 @@ public class BannerController {
         return Result.success(banner);
     }
 
+    /**
+     * 上传单个轮播图到阿里云OSS服务器
+     * @param file 要上传的文件(图片)
+     * @return 可访问的图片链接(阿里云OSS)
+     * @throws Exception 异常
+     */
     @Operation(summary = "上传轮播图接口",description = "将图片上传到阿里云OSS服务器,返回可访问的图片URL")
     @PostMapping("/upload-image")
     public Result<String> uploadBannerImage(
@@ -123,6 +153,11 @@ public class BannerController {
         return Result.success(returnUrl);
     }
 
+    /**
+     * 保存单个轮播图
+     * @param banner 单个轮播图信息
+     * @return 操作结果
+     */
     @Operation(summary = "保存轮播图接口",description = "保存填写的轮播图信息和上传的轮播图")
     @PostMapping("/add")
     public Result<Void> addBanner(@RequestBody Banner banner){ //RequestBody的参数文档自动解析实体类的@Schema注解
@@ -133,6 +168,11 @@ public class BannerController {
         return Result.success();
     }
 
+    /**
+     * 更新单个轮播图
+     * @param banner 轮播图实体类
+     * @return 操作结果
+     */
     @Operation(summary = "更新轮播图接口",description = "供后台使用的更新轮播图的详细信息接口")
     @PutMapping("/update")
     public Result<Void> updateBanner(@RequestBody Banner banner){
