@@ -30,4 +30,8 @@ public interface CategoryService extends IService<Category> {
      */
     List<CategoryVO> getCategoryTree();
 
+    /**
+     * 保存子分类
+     */
+    void saveCategory(Category category);
 }

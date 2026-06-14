@@ -2,10 +2,12 @@ package com.achu.aijumptest.service.impl;
 
 import com.achu.aijumptest.dto.CategoryQuestionDTO;
 import com.achu.aijumptest.entity.Category;
+import com.achu.aijumptest.exception.BusinessException;
 import com.achu.aijumptest.mapper.CategoryMapper;
 import com.achu.aijumptest.mapper.QuestionMapper;
 import com.achu.aijumptest.service.CategoryService;
 import com.achu.aijumptest.vo.CategoryVO;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -69,6 +71,23 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
                     categoryVO.setQuestionCount(sum);
                 });
         return categoryVOParentList;
+    }
+
+    @Override
+    public void saveCategory(Category category) {
+        //1.判断同一父分类下是否有重名子分类
+        LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Category::getParentId,category.getParentId())
+                .eq(Category::getName,category.getName());
+        //2.查询是否有符合的数据,>0 就是重名了
+        long count = count(queryWrapper);
+        if(count > 0){
+            Category parentCategory = getById(category.getParentId());
+            throw new BusinessException("新增子分类失败！【%s】父分类下已有名为【%s】的子分类！"
+                    .formatted(parentCategory.getName(),category.getName()));
+        }
+        //3.通过校验,进行保存
+        save(category);
     }
 
     /**

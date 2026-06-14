@@ -5,12 +5,11 @@ import com.achu.aijumptest.entity.Category;
 import com.achu.aijumptest.service.CategoryService;
 import com.achu.aijumptest.vo.CategoryVO;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -30,6 +29,10 @@ public class CategoryController {
     @Autowired
     private CategoryService categoryService;
 
+    /**
+     * 查询所有分类(无子类)
+     * @return 分类列表
+     */
     @GetMapping
     @Operation(summary = "查询分类列表",description = "获取所有分类列表,没有子分类")
     public Result<List<CategoryVO>> categories(){
@@ -40,6 +43,10 @@ public class CategoryController {
         return Result.success(categories);
     }
 
+    /**
+     * 查询所有分类树(有子类)
+     * @return 分类树状列表
+     */
     @GetMapping("/tree")
     @Operation(summary = "查询分类树状列表",description = "查询所有分类列表,包括子分类")
     public Result<List<CategoryVO>> categoryTree(){
@@ -48,6 +55,23 @@ public class CategoryController {
         //2.返回结果
         log.info("查询分类树状列表成功！{}",categoryTree);
         return Result.success(categoryTree);
+    }
+
+    /**
+     * 新增子类分类
+     * @param category 子类分类
+     * @return 操作结果
+     */
+    @PostMapping
+    @Operation(summary = "新增子分类接口",description = "此接口只能在父分类下增加子分类")
+    public Result<Void> save(
+            @Parameter(description = "要新增的子类") @RequestBody Category category
+    ){
+        //1.执行新增操作
+        log.info("开始新增子分类：{}",category);
+        categoryService.saveCategory(category);
+        //2.返回操作结果
+        return Result.success();
     }
 
 }
