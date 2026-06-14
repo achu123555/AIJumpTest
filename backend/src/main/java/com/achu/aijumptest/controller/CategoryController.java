@@ -86,5 +86,16 @@ public class CategoryController {
         return Result.success();
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除子分类接口",description = "删除子分类接口,一级父分类不可删除")
+    public Result<Void> removeCategoryById(
+            @Parameter(description = "分类Id") @PathVariable("id") Long id
+    ){
+        //1.执行删除操作
+        log.info("开始删除分类,id为:{}",id);
+        categoryService.removeCategoryById(id);
+        //2.返回操作结果
+        return Result.success();
+    }
 }
 

@@ -4,6 +4,7 @@
 
 - 学生端首页：`/home`
 - 管理端轮播图管理：`/admin/banner-manage`
+- 管理端类别管理：`/admin/category-manage`
 - 其他管理模块：暂时显示「待开发」
 
 ## 技术栈
@@ -40,6 +41,7 @@ http://localhost:3001/home
 
 ```text
 http://localhost:3001/admin/banner-manage
+http://localhost:3001/admin/category-manage
 ```
 
 ## 已接入的后端接口
@@ -132,13 +134,76 @@ PUT /api/banners/toggle/{id}?isActive=true
 PUT /api/banners/toggle/{id}?isActive=false
 ```
 
+
+
+## 已接入的分类管理接口
+
+### 查询分类平铺列表
+
+```text
+GET /api/categories
+```
+
+### 查询分类树状列表
+
+```text
+GET /api/categories/tree
+```
+
+用途：管理端类别管理页面展示一级分类和二级分类。
+
+### 新增子分类
+
+```text
+POST /api/categories
+Content-Type: application/json
+```
+
+请求体示例：
+
+```json
+{
+  "parentId": 13,
+  "name": "Java基础",
+  "sort": 1
+}
+```
+
+### 更新子分类
+
+```text
+PUT /api/categories
+Content-Type: application/json
+```
+
+请求体示例：
+
+```json
+{
+  "id": 16,
+  "parentId": 13,
+  "name": "Java基础",
+  "sort": 1
+}
+```
+
+### 删除子分类
+
+```text
+DELETE /api/categories/{id}
+```
+
+注意：当前后端逻辑中，一级分类不可删除；二级分类如果已经关联题目，也不可删除。
+
 ## 主要文件
 
 ```text
 src/api/request.js          fetch 统一请求封装
-src/api/banner.js           轮播图接口统一管理
-src/views/Home.vue          学生端首页，展示启用轮播图
-src/views/BannerManage.vue  管理端轮播图完整 CRUD 页面
+src/api/banner.js            轮播图接口统一管理
+src/api/category.js          分类接口统一管理
+src/views/Home.vue           学生端首页，展示启用轮播图
+src/views/BannerManage.vue   管理端轮播图完整 CRUD 页面
+src/views/CategoryManage.vue 管理端类别管理页面
 src/router/index.js         路由配置
 vite.config.js              开发代理配置
 ```

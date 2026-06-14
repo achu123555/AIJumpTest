@@ -32,11 +32,19 @@ public interface CategoryService extends IService<Category> {
 
     /**
      * 保存子分类
+     * @param category 子分类实体类
      */
     void saveCategory(Category category);
 
     /**
      * 更新子分类
+     * @param category 子分类实体类
      */
     void updateCategory(Category category);
+
+    /**
+     * 删除子分类
+     * @param id 分类id
+     */
+    void removeCategoryById(Long id);
 }

@@ -1,11 +1,11 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import Home from '../views/Home.vue'
 import BannerManage from '../views/BannerManage.vue'
+import CategoryManage from '../views/CategoryManage.vue'
 import Placeholder from '../views/Placeholder.vue'
 
 const placeholderRoutes = [
   { path: 'question-manage', title: '题目管理' },
-  { path: 'category-manage', title: '类别管理' },
   { path: 'paper-manage', title: '试卷管理' },
   { path: 'score-manage', title: '成绩管理' },
   { path: 'notice-manage', title: '公告管理' },
@@ -21,6 +21,7 @@ const routes = [
     redirect: '/admin/banner-manage',
     children: [
       { path: 'banner-manage', name: 'BannerManage', component: BannerManage, meta: { title: '轮播图管理' } },
+      { path: 'category-manage', name: 'CategoryManage', component: CategoryManage, meta: { title: '类别管理' } },
       ...placeholderRoutes.map(item => ({
         path: item.path,
         name: item.path,

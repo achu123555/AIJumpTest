@@ -2,6 +2,7 @@ package com.achu.aijumptest.service.impl;
 
 import com.achu.aijumptest.dto.CategoryQuestionDTO;
 import com.achu.aijumptest.entity.Category;
+import com.achu.aijumptest.entity.Question;
 import com.achu.aijumptest.exception.BusinessException;
 import com.achu.aijumptest.mapper.CategoryMapper;
 import com.achu.aijumptest.mapper.QuestionMapper;
@@ -11,7 +12,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
+
 
 import java.util.ArrayList;
 import java.util.Comparator;
@@ -91,13 +92,13 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         long count = count(queryWrapper);
         if(count > 0){
             throw new BusinessException("新增子分类失败！【%s】父分类下已有名为【%s】的子分类！"
-                    .formatted(parentCategory.getName(),category.getName()));
+                    .formatted(parentCategory.getName(),category.getName())
+            );
         }
         //3.通过校验,进行保存
         save(category);
     }
 
-    @Transactional
     @Override
     public void updateCategory(Category category) {
         //1.校验父分类是否存在
@@ -115,13 +116,37 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         boolean exists = categoryMapper.exists(queryWrapper);
         if(exists){
             throw new BusinessException("编辑子分类失败！【%s】父分类下已有名为【%s】的子分类！"
-                    .formatted(parentCategory.getName(),category.getName()));
+                    .formatted(parentCategory.getName(),category.getName())
+            );
         }
         //3.通过校验,执行更新
         boolean update = updateById(category);
         if (!update) {
-            throw new BusinessException("更新失败！");
+            throw new BusinessException("更新分类失败！");
         }
+    }
+
+    @Override
+    public void removeCategoryById(Long id) {
+        //1.一级父分类不可删除
+        Category category = getById(id);
+        if(category == null){
+            throw new BusinessException("指定删除的分类不存在！");
+        }
+        if(category.getParentId() == 0){
+            throw new BusinessException("一级分类不可删除！");
+        }
+        //2.防御性编程：查找是否有题目关联到此分类
+        LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Question::getCategoryId,id);
+        Long count = questionMapper.selectCount(queryWrapper);
+        if(count > 0){
+            throw new BusinessException("删除【%s】分类失败！,此分类已关联【%s】道题目。"
+                    .formatted(category.getName(),count)
+            );
+        }
+        //3.通过校验，删除分类
+        removeById(id);
     }
 
     /**
