@@ -34,4 +34,9 @@ public interface CategoryService extends IService<Category> {
      * 保存子分类
      */
     void saveCategory(Category category);
+
+    /**
+     * 更新子分类
+     */
+    void updateCategory(Category category);
 }

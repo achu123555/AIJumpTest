@@ -74,5 +74,17 @@ public class CategoryController {
         return Result.success();
     }
 
+    @PutMapping
+    @Operation(summary = "更新子分类接口",description = "编辑保存子分类的名字、排序等级")
+    public Result<Void> update(
+            @Parameter(description = "子分类") @RequestBody Category category
+    ){
+        //1.执行更新操作
+        log.info("开始执行更新子分类操作：{}",category);
+        categoryService.updateCategory(category);
+        //2.返回操作结果
+        return Result.success();
+    }
+
 }
 

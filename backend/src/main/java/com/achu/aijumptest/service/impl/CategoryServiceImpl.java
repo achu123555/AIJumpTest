@@ -90,6 +90,33 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         save(category);
     }
 
+    @Transactional
+    @Override
+    public void updateCategory(Category category) {
+        //1.校验父分类是否存在
+        Category parentCategory = getById(category.getParentId());
+        if(parentCategory == null){
+            throw new BusinessException("父分类不存在！");
+        }
+        //2.同一父分类下,不能有其他相同子分类。
+        LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(Category::getParentId,category.getParentId()) //同一父分类
+                .ne(Category::getId,category.getId()) //不同id
+                .eq(Category::getName,category.getName()); //同名
+        //service可以通过方法接收baseMapper对象
+        CategoryMapper categoryMapper = getBaseMapper();
+        boolean exists = categoryMapper.exists(queryWrapper);
+        if(exists){
+            throw new BusinessException("编辑子分类失败！【%s】父分类下已有名为【%s】的子分类！"
+                    .formatted(parentCategory.getName(),category.getName()));
+        }
+        //3.通过校验,执行更新
+        boolean update = updateById(category);
+        if (!update) {
+            throw new BusinessException("更新失败！");
+        }
+    }
+
     /**
      * 查询并填充categoryVO集合中题目数量字段的方法
      * @param categoryVOList 题目分类集合 List<Map>
