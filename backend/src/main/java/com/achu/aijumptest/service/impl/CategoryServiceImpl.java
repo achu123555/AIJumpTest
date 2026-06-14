@@ -11,8 +11,10 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -63,6 +65,8 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
                 .forEach(categoryVO -> {
                     //批量赋children字段
                     List<CategoryVO> children = MapByParentId.getOrDefault(categoryVO.getId(), new ArrayList<>());
+                    //正序排序 .reversed()倒序
+                    children.sort(Comparator.comparingInt(CategoryVO::getSort));
                     categoryVO.setChildren(children);
                     //批量设置count = 当前count + 子类count
                     long sum = children.stream()
@@ -75,14 +79,17 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
 
     @Override
     public void saveCategory(Category category) {
-        //1.判断同一父分类下是否有重名子分类
+        //1.校验父分类是否存在
+        Category parentCategory = getById(category.getParentId());
+        if(parentCategory == null){
+            throw new BusinessException("父分类不存在！");
+        }
         LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Category::getParentId,category.getParentId())
                 .eq(Category::getName,category.getName());
-        //2.查询是否有符合的数据,>0 就是重名了
+        //2.判断同一父分类下是否有重名子分类
         long count = count(queryWrapper);
         if(count > 0){
-            Category parentCategory = getById(category.getParentId());
             throw new BusinessException("新增子分类失败！【%s】父分类下已有名为【%s】的子分类！"
                     .formatted(parentCategory.getName(),category.getName()));
         }
@@ -98,7 +105,7 @@ public class CategoryServiceImpl extends ServiceImpl<CategoryMapper, Category> i
         if(parentCategory == null){
             throw new BusinessException("父分类不存在！");
         }
-        //2.同一父分类下,不能有其他相同子分类。
+        //2.同一父分类下,不可以有不同子分类id但相同分类名。
         LambdaQueryWrapper<Category> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(Category::getParentId,category.getParentId()) //同一父分类
                 .ne(Category::getId,category.getId()) //不同id
