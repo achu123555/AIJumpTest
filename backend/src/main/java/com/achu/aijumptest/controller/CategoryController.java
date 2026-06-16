@@ -3,6 +3,7 @@ package com.achu.aijumptest.controller;
 import com.achu.aijumptest.common.Result;
 import com.achu.aijumptest.entity.Category;
 import com.achu.aijumptest.service.CategoryService;
+import com.achu.aijumptest.vo.CategoryTreeVO;
 import com.achu.aijumptest.vo.CategoryVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -49,9 +50,9 @@ public class CategoryController {
      */
     @GetMapping("/tree")
     @Operation(summary = "查询分类树状列表",description = "查询所有分类列表,包括子分类")
-    public Result<List<CategoryVO>> categoryTree(){
+    public Result<List<CategoryTreeVO>> categoryTree(){
         //1.执行查询
-        List<CategoryVO> categoryTree = categoryService.getCategoryTree();
+        List<CategoryTreeVO> categoryTree = categoryService.getCategoryTree();
         //2.返回结果
         log.info("查询分类树状列表成功！{}",categoryTree);
         return Result.success(categoryTree);

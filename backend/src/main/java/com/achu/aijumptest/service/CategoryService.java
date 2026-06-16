@@ -2,10 +2,9 @@ package com.achu.aijumptest.service;
 
 
 import com.achu.aijumptest.entity.Category;
+import com.achu.aijumptest.vo.CategoryTreeVO;
 import com.achu.aijumptest.vo.CategoryVO;
 import com.baomidou.mybatisplus.extension.service.IService;
-import org.springframework.stereotype.Service;
-
 import java.util.List;
 
 /**
@@ -28,7 +27,7 @@ public interface CategoryService extends IService<Category> {
      * 获取所有分类，包括子分类（分类树）
      * @return 返回树状分类列表
      */
-    List<CategoryVO> getCategoryTree();
+    List<CategoryTreeVO> getCategoryTree();
 
     /**
      * 保存子分类

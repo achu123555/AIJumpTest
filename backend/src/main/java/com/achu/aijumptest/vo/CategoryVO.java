@@ -11,7 +11,7 @@ import java.util.List;
  * projectName: com.achu.aijumptest.vo.CategoryVO
  *
  * @author: achu_code
- * description: category数据传输对象
+ * description: category分类View Object
  */
 
 @EqualsAndHashCode(callSuper = true)
@@ -25,9 +25,6 @@ public class CategoryVO extends BaseVO {
     private Long parentId;
     @Schema(description = "排序字段")
     private Integer sort;
-
-    @Schema(description = "子分类列表")
-    private List<CategoryVO> children = new ArrayList<>();
     @Schema(description = "该分类下的题目数量")
     private Long questionCount;
 
