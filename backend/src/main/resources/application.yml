@@ -20,6 +20,7 @@ mybatis-plus:
   configuration:
     log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
     map-underscore-to-camel-case: true
+    auto-mapping-behavior: full   #开启嵌套映射
   mapper-locations: classpath*:/mapper/**/*.xml
 
 #阿里云OSS参数

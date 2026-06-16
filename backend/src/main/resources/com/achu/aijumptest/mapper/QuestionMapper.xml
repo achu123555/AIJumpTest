@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.achu.aijumptest.mapper.QuestionMapper">
+
+    <!--定义一个结果映射规则,id为后面的sql要引用这个规则的名字,type为映射最终要封装的类型-->
+    <resultMap id="questionMap" type="com.achu.aijumptest.vo.QuestionPageVO">
+        <!--主键映射：把查询结果中的 id 列，赋值给 QuestionPageVO 对象的 id 属性-->
+        <id column="id" property="id"/>
+        <!--一对一 / 多对一对象映射 给 QuestionPageVO 对象里面的 answer 属性赋值。-->
+        <association property="questionAnswer" javaType="com.achu.aijumptest.entity.QuestionAnswer">
+            <id column="qa_id" property="id"/>
+            <result column="qa_answer" property="answer"/>
+            <result column="qa_keywords" property="keywords"/>
+            <result column="qa_create_time" property="createTime"/>
+            <result column="qa_update_time" property="updateTime"/>
+            <result column="id" property="questionId"/>
+        </association>
+        <!--一对多 集合映射-->
+        <collection property="questionChoiceList" ofType="com.achu.aijumptest.entity.QuestionChoice"
+                    column="id" select="com.achu.aijumptest.mapper.QuestionChoiceMapper.selectChoiceByQuestionId"/>
+    </resultMap>
+
+    <!--id为绑定的mapper的方法名 resultMap为自定义结果映射规则-->
+    <select id="selectByPage" resultMap="questionMap">
+        SELECT q.*,
+               qa.id qa_id,
+               qa.answer qa_answer,
+               qa.keywords qa_keywords,
+               qa.create_time qa_create_time,
+               qa.update_time qa_update_time
+        FROM questions q LEFT JOIN question_answer qa
+        ON q.id = qa.question_id
+        WHERE q.is_deleted = 0 AND qa.is_deleted =0
+        <if test="query.type != null and query.type!=''">
+            AND q.type = #{query.type}
+        </if>
+        <if test="query.difficulty != null and query.difficulty!=''">
+            AND q.difficulty = #{query.difficulty}
+        </if>
+        <if test="query.categoryId != null">
+            AND q.category_id = #{query.categoryId}
+        </if>
+        <if test="query.keyword != null and query.keyword!=''">
+            AND q.title LIKE CONCAT('%',#{keyword},'%')
+        </if>
+        ORDER BY q.create_time DESC
+    </select>
+
+
+</mapper>

@@ -62,4 +62,17 @@ public class Knife4jConfiguration {
                 .pathsToMatch("/api/categories/**")
                 .build();
     }
+
+    /**
+     *   配置接口分组：题目业务分组
+     */
+    @Bean
+    public GroupedOpenApi questionApi() {
+        return GroupedOpenApi.builder()
+                //接口名
+                .group("题目管理接口")
+                //通过路由来匹配
+                .pathsToMatch("/api/questions/**")
+                .build();
+    }
 }

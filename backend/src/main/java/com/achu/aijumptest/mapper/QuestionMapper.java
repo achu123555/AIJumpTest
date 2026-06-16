@@ -1,16 +1,17 @@
 package com.achu.aijumptest.mapper;
 
-import com.achu.aijumptest.dto.CategoryQuestionDTO;
+import com.achu.aijumptest.dto.QuestionDTO;
 import com.achu.aijumptest.entity.Question;
-import com.achu.aijumptest.vo.CategoryVO;
+import com.achu.aijumptest.vo.QuestionPageVO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.baomidou.mybatisplus.core.metadata.IPage;
+import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import org.apache.ibatis.annotations.MapKey;
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 import org.apache.ibatis.annotations.Select;
 
 import java.util.List;
-import java.util.Map;
-import java.util.Objects;
 
 
 /**
@@ -30,5 +31,16 @@ public interface QuestionMapper extends BaseMapper<Question> {
     @Select("SELECT category_id categoryId,COUNT(*) ct FROM questions " +
             "WHERE is_deleted = 0 GROUP BY category_id")
     @MapKey("category_id")
-    List<CategoryQuestionDTO> selectQuestionCount();
+    List<QuestionDTO.Count> selectQuestionCount();
+
+    /**
+     * 分页+条件查询 → 题目+答案+选项
+     * 形参说明：第一个参数必须是 Page对象，MP 自动识别
+     * @return 分页对象
+     */
+    IPage<QuestionPageVO> selectByPage(
+            @Param("page") Page<QuestionPageVO> page,
+            @Param("query") QuestionDTO.Query queryDTO);
+
+
 }
