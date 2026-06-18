@@ -10,9 +10,7 @@ import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * projectName: com.achu.aijumptest.controller.QuestionController
@@ -42,5 +40,17 @@ public class QuestionController {
         //2.返回结果
         log.info("分页查询题目成功！查询结果为:{}",listByPage.getRecords());
         return Result.success(listByPage);
+    }
+
+    @PostMapping
+    @Operation(summary = "新增题目接口",description = "可以新增题目,题目类型有选择题、多选题、简答题")
+    public Result<Void> save(
+            @RequestBody @ParameterObject QuestionDTO.Save saveDTO
+    ){
+        //1.执行保存
+        log.info("开始保存新增题目，题目为：{}",saveDTO);
+        questionService.save(saveDTO);
+        //2.返回结果
+        return Result.success();
     }
 }

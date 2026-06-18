@@ -5,6 +5,7 @@ import com.achu.aijumptest.dto.QuestionDTO;
 import com.achu.aijumptest.entity.Question;
 import com.achu.aijumptest.entity.QuestionAnswer;
 import com.achu.aijumptest.entity.QuestionChoice;
+import com.achu.aijumptest.exception.BusinessException;
 import com.achu.aijumptest.mapper.QuestionAnswerMapper;
 import com.achu.aijumptest.mapper.QuestionChoiceMapper;
 import com.achu.aijumptest.mapper.QuestionMapper;
@@ -17,11 +18,9 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -61,16 +60,74 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                 Question::getDifficulty,queryDTO.getDifficulty());
         queryWrapper.like(!ObjectUtils.isEmpty(queryDTO.getKeyword()),
                 Question::getTitle,queryDTO.getKeyword());
+        queryWrapper.orderByDesc(Question::getCreateTime);
         //查询参数：分页参数 和 包装条件
         page(pageBean, queryWrapper);
+
         //2.entity转成VO
         List<QuestionPageVO> voList = BeanUtil.copyToList(pageBean.getRecords(), QuestionPageVO.class);
         Page<QuestionPageVO> resultPage = new Page<>(pageBean.getCurrent(), pageBean.getSize(), pageBean.getTotal());
         resultPage.setRecords(voList);
+
         //3.提取公共方法批量填充答案和选项字段
         fillAnswerAndChoice(resultPage.getRecords());
         return resultPage;
     }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void save(QuestionDTO.Save saveDTO) {
+        //多表DML操作,需要开启事务,自定义异常继承的RuntimeException,不用设置rollback属性
+
+        //1.先保存题目,再获取回显的id
+        Question question = BeanUtil.copyProperties(saveDTO, Question.class);
+        baseMapper.insert(question);
+
+        Long questionId = question.getId();
+        if(questionId == null){
+            throw new BusinessException("题目保存失败,未获取到主键ID！");
+        }
+
+        //2.判断题型（简答题和判断题直接填充答案; 选择题需要保存拼接答案和选项）
+        QuestionAnswer answer = saveDTO.getQuestionAnswer();
+        if(ObjectUtils.isNotNull(answer)){
+            // 2.1 简答题/判断题直接绑定题目ID并保存
+            answer.setQuestionId(questionId);
+            questionAnswerMapper.insert(answer);
+        }else{
+            // 2.2 选择题处理
+            List<QuestionChoice> choices = saveDTO.getQuestionChoiceList();
+            if(ObjectUtils.isNull(choices) || ObjectUtils.isEmpty(choices)){
+                throw new BusinessException("非法数据,选择题必须提供选项列表！");
+            }
+            // 2.3 根据选项isCorrect字段拼接选择题&多选题答案(顺手批量设置选项关联的题目id)
+            StringJoiner sj = new StringJoiner(",");
+            for (QuestionChoice choice : choices) {
+                choice.setQuestionId(questionId);
+                if(choice.getIsCorrect()){
+                    if(choice.getSort() == null){
+                        throw new BusinessException("非法数据：选项的序号(sort)不能为空！");
+                    }
+                    int i = choice.getSort().intValue();
+                    char correctAnswer = (char) (i + 'A' - 1);
+                    sj.add(String.valueOf(correctAnswer));
+                }
+            }
+            if(sj.length() == 0){
+                throw new BusinessException("非法数据：选择题必须至少指定一个正确答案！");
+            }
+            
+            //3.选择题/多选题答案
+            QuestionAnswer questionAnswer = new QuestionAnswer();
+            questionAnswer.setQuestionId(questionId);
+            questionAnswer.setAnswer(sj.toString());
+
+            //4.最后进行保存动作(避免代码后面发送异常回滚浪费数据库性能)
+            questionChoiceMapper.insert(choices);
+            questionAnswerMapper.insert(questionAnswer);
+            }
+        }
+
 
     private void fillAnswerAndChoice(List<QuestionPageVO> records) {
         //1.判空

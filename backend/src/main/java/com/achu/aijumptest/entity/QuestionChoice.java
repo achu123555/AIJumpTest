@@ -22,7 +22,7 @@ public class QuestionChoice extends BaseEntity{
     @Schema(description = "该选项的内容",example = "ArrayList适合随机查找，LinkedList适合头尾快速插入与删除")
     private String content;
     @Schema(description = "该选项是否正确",example = "true")
-    private boolean isCorrect;
+    private Boolean isCorrect;
     @Schema(description = "该选项的排序优先级",example = "1")
     private Integer sort;
 

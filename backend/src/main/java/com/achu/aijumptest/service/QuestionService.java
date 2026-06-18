@@ -28,4 +28,10 @@ public interface QuestionService extends IService<Question> {
      * @return 分页查询结果
      */
     Page<QuestionPageVO> queryByPageEnhance(QuestionDTO.Query queryDTO);
+
+    /**
+     * 保存题目
+     * @param saveDTO 题目传输数据对象
+     */
+    void save(QuestionDTO.Save saveDTO);
 }

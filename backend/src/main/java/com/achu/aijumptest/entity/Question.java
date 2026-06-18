@@ -30,7 +30,7 @@ public class Question extends BaseEntity{
     private Long categoryId;
 
     @Schema(description = "是否为多选题,仅选择题有效",example = "false")
-    private boolean multi;
+    private Boolean multi;
 
     @Schema(description = "题目难度", example = "MEDIUM", allowableValues = {"EASY","MEDIUM","HARD"})
     private String difficulty;
