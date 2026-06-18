@@ -7,6 +7,7 @@ import com.achu.aijumptest.service.QuestionService;
 import com.achu.aijumptest.vo.QuestionPageVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
@@ -40,6 +41,16 @@ public class QuestionController {
         //2.返回结果
         log.info("分页查询题目成功！查询结果为:{}",listByPage.getRecords());
         return Result.success(listByPage);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "查看题目详情接口",description = "此接口可以查看题目及详情信息,包括答案和选项。")
+    public Result<QuestionPageVO> getById(
+            @PathVariable("id") @Parameter(description = "题目id") Long id){
+        log.info("开始根据id查询题目,对应的题目id为：{}",id);
+        QuestionPageVO questionVo = questionService.getById(id);
+
+        return Result.success(questionVo);
     }
 
     @PostMapping

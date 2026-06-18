@@ -128,6 +128,36 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             }
         }
 
+    @Override
+    public QuestionPageVO getById(Long id) {
+        //1.查出题目
+        Question question = baseMapper.selectById(id);
+        if(ObjectUtils.isNull(question)){
+            throw new BusinessException("没有找到对应的题目！");
+        }
+
+        //2.拷贝题目,题目必有答案,直接查出答案填充
+        QuestionPageVO questionPageVO = BeanUtil.copyProperties(question, QuestionPageVO.class);
+        QuestionAnswer answer = questionAnswerMapper.selectOne(
+                new LambdaQueryWrapper<QuestionAnswer>()
+                        .eq(QuestionAnswer::getQuestionId, questionPageVO.getId())
+                        .last("LIMIT 1") //防止并发Bug的脏数据导致抛异常
+        );
+        questionPageVO.setQuestionAnswer(answer);
+
+        //3.根据题目类型去决定是否填充选项,只有选择题有选项
+        String type = questionPageVO.getType();
+        if("CHOICE".equals(type)){
+            List<QuestionChoice> choices = questionChoiceMapper.selectList(
+                    new LambdaQueryWrapper<QuestionChoice>()
+                            .eq(QuestionChoice::getQuestionId, questionPageVO.getId())
+            );
+            questionPageVO.setQuestionChoiceList(choices);
+        }
+
+        return questionPageVO;
+    }
+
 
     private void fillAnswerAndChoice(List<QuestionPageVO> records) {
         //1.判空
