@@ -46,8 +46,10 @@ public class QuestionDTO {
     }
 
     @Data
-    public static class Save{
+    public static class SaveAndUpdate {
 
+        @Schema(description = "题目id",example = "66")
+        private Long id;
         @Schema(description = "题目", example = "以下关于Java面向对象编程说法正确的是？")
         private String title;
         @Schema(description = "题目类型", example = "CHOICE", allowableValues = {"CHOICE","JUDGE","TEXT"})

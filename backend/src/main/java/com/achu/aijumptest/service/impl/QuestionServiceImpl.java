@@ -12,6 +12,7 @@ import com.achu.aijumptest.mapper.QuestionMapper;
 import com.achu.aijumptest.service.QuestionService;
 import com.achu.aijumptest.vo.QuestionPageVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -76,11 +77,11 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
     @Transactional(rollbackFor = Exception.class)
     @Override
-    public void save(QuestionDTO.Save saveDTO) {
+    public void save(QuestionDTO.SaveAndUpdate saveAndUpdateDTO) {
         //多表DML操作,需要开启事务,自定义异常继承的RuntimeException,不用设置rollback属性
 
         //1.先保存题目,再获取回显的id
-        Question question = BeanUtil.copyProperties(saveDTO, Question.class);
+        Question question = BeanUtil.copyProperties(saveAndUpdateDTO, Question.class);
         baseMapper.insert(question);
 
         Long questionId = question.getId();
@@ -89,14 +90,14 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
 
         //2.判断题型（简答题和判断题直接填充答案; 选择题需要保存拼接答案和选项）
-        QuestionAnswer answer = saveDTO.getQuestionAnswer();
+        QuestionAnswer answer = saveAndUpdateDTO.getQuestionAnswer();
         if(ObjectUtils.isNotNull(answer)){
             // 2.1 简答题/判断题直接绑定题目ID并保存
             answer.setQuestionId(questionId);
             questionAnswerMapper.insert(answer);
         }else{
             // 2.2 选择题处理
-            List<QuestionChoice> choices = saveDTO.getQuestionChoiceList();
+            List<QuestionChoice> choices = saveAndUpdateDTO.getQuestionChoiceList();
             if(ObjectUtils.isNull(choices) || ObjectUtils.isEmpty(choices)){
                 throw new BusinessException("非法数据,选择题必须提供选项列表！");
             }
@@ -156,6 +157,65 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
 
         return questionPageVO;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void update(QuestionDTO.SaveAndUpdate updateDTO) {
+
+        // 1.先判断题目是否重复(不同id同名题目 == 重复)
+        boolean exists = baseMapper.exists(
+                new LambdaQueryWrapper<Question>()
+                        .ne(Question::getId, updateDTO.getId())
+                        .eq(Question::getTitle, updateDTO.getTitle())
+        );
+        if(exists){
+            throw new BusinessException("题目已存在,请勿重复提交！");
+        }
+
+        // 2.更新题目
+        Question question = BeanUtil.copyProperties(updateDTO, Question.class);
+        int update = baseMapper.updateById(question);
+        if(update == 0){
+            throw new BusinessException("更新失败,没有找到该题目!");
+        }
+
+        // 3.更新简答题判断题信息(答案为null就是选择题,不为null就是简答题和判断题)
+        QuestionAnswer answer = updateDTO.getQuestionAnswer();
+        if(ObjectUtils.isNotNull(answer)){
+            //简答题有主键id,直接根据id更新即可
+            questionAnswerMapper.updateById(answer);
+            return;
+        }
+
+        // 4.更新选择题拼接答案和删除插入选项
+        StringJoiner sj = new StringJoiner(",");
+        List<QuestionChoice> choices = updateDTO.getQuestionChoiceList();
+        for (QuestionChoice choice : choices) {
+            choice.setQuestionId(question.getId());
+            if(choice.getIsCorrect()){
+                int i = choice.getSort().intValue();
+                sj.add(String.valueOf((char)(i+'A'-1)));
+            }
+        }
+        if(sj.length() == 0){
+            throw new BusinessException("请设置一个或多个正确选项！");
+        }
+
+        answer.setAnswer(sj.toString());
+        //没有id主键,有questionID → 根据条件更新
+        questionAnswerMapper.update(
+                null,
+                new LambdaUpdateWrapper<QuestionAnswer>()
+                        .eq(QuestionAnswer::getQuestionId,question.getId())
+                        .set(QuestionAnswer::getAnswer,sj.toString())
+        );
+        //有questionID → 根据条件删除
+        questionChoiceMapper.delete(
+                new LambdaQueryWrapper<QuestionChoice>()
+                        .eq(QuestionChoice::getQuestionId,question.getId())
+        );
+        questionChoiceMapper.insert(choices);
     }
 
 

@@ -31,9 +31,9 @@ public interface QuestionService extends IService<Question> {
 
     /**
      * 保存题目
-     * @param saveDTO 题目传输数据对象
+     * @param saveAndUpdateDTO 题目传输数据对象
      */
-    void save(QuestionDTO.Save saveDTO);
+    void save(QuestionDTO.SaveAndUpdate saveAndUpdateDTO);
 
     /**
      * 根据id获取题目的详情信息,包括答案和选项
@@ -41,4 +41,10 @@ public interface QuestionService extends IService<Question> {
      * @return 题目展示对象
      */
     QuestionPageVO getById(Long id);
+
+    /**
+     * 更新题目的详情信息接口,包括答案和选项
+     * @param updateDTO 更新数据传输DTO
+     */
+    void update(QuestionDTO.SaveAndUpdate updateDTO);
 }

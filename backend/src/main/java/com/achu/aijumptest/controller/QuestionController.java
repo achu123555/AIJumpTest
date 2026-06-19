@@ -2,7 +2,6 @@ package com.achu.aijumptest.controller;
 
 import com.achu.aijumptest.common.Result;
 import com.achu.aijumptest.dto.QuestionDTO;
-import com.achu.aijumptest.entity.Question;
 import com.achu.aijumptest.service.QuestionService;
 import com.achu.aijumptest.vo.QuestionPageVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -46,7 +45,8 @@ public class QuestionController {
     @GetMapping("/{id}")
     @Operation(summary = "查看题目详情接口",description = "此接口可以查看题目及详情信息,包括答案和选项。")
     public Result<QuestionPageVO> getById(
-            @PathVariable("id") @Parameter(description = "题目id") Long id){
+            @PathVariable("id")
+            @Parameter(description = "题目id") Long id){
         log.info("开始根据id查询题目,对应的题目id为：{}",id);
         QuestionPageVO questionVo = questionService.getById(id);
 
@@ -56,12 +56,25 @@ public class QuestionController {
     @PostMapping
     @Operation(summary = "新增题目接口",description = "可以新增题目,题目类型有选择题、多选题、简答题")
     public Result<Void> save(
-            @RequestBody @ParameterObject QuestionDTO.Save saveDTO
+            @RequestBody
+            @ParameterObject QuestionDTO.SaveAndUpdate saveAndUpdateDTO
     ){
         //1.执行保存
-        log.info("开始保存新增题目，题目为：{}",saveDTO);
-        questionService.save(saveDTO);
+        log.info("开始保存新增题目，题目为：{}", saveAndUpdateDTO);
+        questionService.save(saveAndUpdateDTO);
         //2.返回结果
+        return Result.success();
+    }
+
+    @PutMapping
+    @Operation(summary = "更新题目接口",description = "可以编辑题目的所有详情信息")
+    public Result<Void> update(
+            @RequestBody
+            @Parameter(description = "题目更新对象")
+            QuestionDTO.SaveAndUpdate updateDTO
+    ){
+        log.info("开始更新题目。要编辑的题目为：{}",updateDTO);
+        questionService.update(updateDTO);
         return Result.success();
     }
 }
