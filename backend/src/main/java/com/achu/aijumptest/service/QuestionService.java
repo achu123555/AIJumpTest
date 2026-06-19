@@ -56,4 +56,10 @@ public interface QuestionService extends IService<Question> {
      * @return 完整题目列表
      */
     List<QuestionPageVO> getPopularQuestion(Integer size);
+
+    /**
+     * 根据题目id删除题目及其选项与答案
+     * @param id 题目id
+     */
+    void delete(Long id);
 }

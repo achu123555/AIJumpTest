@@ -26,7 +26,7 @@ public class QuestionDTO {
         @Schema(description = "分页一页显示数量，默认为10", example = "10")
         private Integer size = 10;
 
-        @Schema(description = "分类ID筛选条件，根据分类筛选", example = "4")
+        @Schema(description = "单个分类id,点击二级分类用,根据分类筛选", example = "4")
         private Integer categoryId;
 
         @Schema(description = "难度筛选条件：EASY, MEDIUM, HARD", example = "MEDIUM")
@@ -37,6 +37,9 @@ public class QuestionDTO {
 
         @Schema(description = "关键词筛选条件,根据关键词模糊筛选", example = "Java")
         private String keyword;
+
+        @Schema(description = "多个分类id,点击一级分类时用")
+        private List<Long> categoryIds;
     }
 
     @Data

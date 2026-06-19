@@ -94,7 +94,7 @@
       </div>
 
       <div class="quick-grid">
-        <article v-for="item in quickItems" :key="item.title" class="quick-card" @click="goTodo(item.title)">
+        <article v-for="item in quickItems" :key="item.title" class="quick-card" @click="handleQuickClick(item)">
           <div class="quick-icon" :class="item.colorClass">
             <el-icon><component :is="item.icon" /></el-icon>
           </div>
@@ -102,6 +102,22 @@
           <p>{{ item.desc }}</p>
         </article>
       </div>
+    </section>
+
+    <section class="popular-section">
+      <div class="popular-head">
+        <div><h2>热门题目</h2><p>最近被打开得比较多的题，适合拿来热身。</p></div>
+        <button type="button" class="more-link" @click="router.push('/questions')">查看更多 →</button>
+      </div>
+      <el-skeleton v-if="popularLoading" animated :rows="4" />
+      <div v-else-if="popularQuestions.length" class="popular-grid">
+        <article v-for="item in popularQuestions" :key="item.id" class="popular-card" @click="goQuestionDetail(item.id)">
+          <div class="popular-tags"><el-tag size="small" :type="getTypeTag(item.type)" effect="light">{{ getTypeLabel(item.type) }}</el-tag><el-tag size="small" :type="getDifficultyTag(item.difficulty)" effect="light">{{ getDifficultyLabel(item.difficulty) }}</el-tag></div>
+          <h3>{{ item.title }}</h3>
+          <div class="popular-meta"><span>👁 点开练习</span><span>✓ {{ item.score || 0 }} 分</span></div>
+        </article>
+      </div>
+      <el-empty v-else description="暂无热门题目" />
     </section>
   </main>
 </template>
@@ -122,10 +138,14 @@ import {
   VideoPlay
 } from '@element-plus/icons-vue'
 import { getActiveBanners } from '../api/banner'
+import { getPopularQuestions } from '../api/question'
+import { getDifficultyLabel, getDifficultyTag, getTypeLabel, getTypeTag } from '../utils/questionMeta'
 
 const router = useRouter()
 const bannerLoading = ref(false)
 const activeBanners = ref([])
+const popularLoading = ref(false)
+const popularQuestions = ref([])
 
 const quickItems = [
   {
@@ -138,7 +158,8 @@ const quickItems = [
     title: '刷题练习',
     desc: '按分类练习，慢慢把薄弱点补上',
     icon: EditPen,
-    colorClass: 'red'
+    colorClass: 'red',
+    path: '/questions'
   },
   {
     title: '学习排行',
@@ -234,6 +255,31 @@ const handleBannerClick = banner => {
   })
 }
 
+const loadPopularQuestions = async () => {
+  popularLoading.value = true
+  try {
+    const list = await getPopularQuestions(6)
+    popularQuestions.value = Array.isArray(list) ? list : []
+  } catch (error) {
+    console.error('热门题目加载失败：', error)
+    popularQuestions.value = []
+  } finally {
+    popularLoading.value = false
+  }
+}
+
+const handleQuickClick = item => {
+  if (item.path) {
+    router.push(item.path)
+    return
+  }
+  goTodo(item.title)
+}
+
+const goQuestionDetail = id => {
+  router.push(`/question/${id}`)
+}
+
 const goTodo = name => {
   ElMessage.info(`${name}模块待开发`)
 }
@@ -244,6 +290,7 @@ const goHome = () => {
 
 onMounted(() => {
   loadActiveBanners()
+  loadPopularQuestions()
 })
 </script>
 
@@ -610,6 +657,18 @@ onMounted(() => {
   font-size: 14px;
 }
 
+.popular-section { max-width: 1220px; margin: 0 auto; padding: 0 40px 90px; }
+.popular-head { display: flex; align-items: end; justify-content: space-between; color: #fff; text-shadow: 0 2px 12px rgba(30, 41, 59, 0.25); margin-bottom: 26px; }
+.popular-head h2 { margin: 0 0 8px; font-size: 32px; font-weight: 900; }
+.popular-head p { margin: 0; opacity: 0.92; }
+.more-link { border: 0; background: transparent; color: #1f2937; font-weight: 800; cursor: pointer; }
+.popular-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 22px; }
+.popular-card { min-height: 138px; padding: 22px; border-radius: 18px; background: rgba(255, 255, 255, 0.94); box-shadow: 0 18px 36px rgba(20, 33, 61, 0.14); cursor: pointer; transition: transform 0.22s ease, box-shadow 0.22s ease; }
+.popular-card:hover { transform: translateY(-5px); box-shadow: 0 24px 44px rgba(20, 33, 61, 0.2); }
+.popular-tags { display: flex; gap: 8px; margin-bottom: 12px; }
+.popular-card h3 { min-height: 46px; margin: 0 0 14px; font-size: 16px; line-height: 1.55; font-weight: 800; color: #111827; }
+.popular-meta { display: flex; align-items: center; justify-content: space-between; color: #6b7280; font-size: 13px; }
+
 @media (max-width: 1180px) {
   .hero-inner {
     grid-template-columns: 1fr;
@@ -619,7 +678,8 @@ onMounted(() => {
     height: auto;
   }
 
-  .quick-grid {
+  .quick-grid,
+  .popular-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }

@@ -3,11 +3,13 @@ package com.achu.aijumptest.service.impl;
 import cn.hutool.core.bean.BeanUtil;
 import com.achu.aijumptest.common.CacheConstants;
 import com.achu.aijumptest.dto.QuestionDTO;
+import com.achu.aijumptest.entity.PaperQuestion;
 import com.achu.aijumptest.entity.Question;
 import com.achu.aijumptest.entity.QuestionAnswer;
 import com.achu.aijumptest.entity.QuestionChoice;
 import com.achu.aijumptest.enums.QuestionType;
 import com.achu.aijumptest.exception.BusinessException;
+import com.achu.aijumptest.mapper.PaperQuestionMapper;
 import com.achu.aijumptest.mapper.QuestionAnswerMapper;
 import com.achu.aijumptest.mapper.QuestionChoiceMapper;
 import com.achu.aijumptest.mapper.QuestionMapper;
@@ -24,6 +26,7 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.awt.print.Paper;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -43,6 +46,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     private final QuestionAnswerMapper questionAnswerMapper;
     private final QuestionChoiceMapper questionChoiceMapper;
     private final RedisUtils redisUtils;
+    private final PaperQuestionMapper paperQuestionMapper;
 
 
     @Override
@@ -57,8 +61,14 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         //1.分页+条件查询所有题目
         Page<Question> pageBean = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
         LambdaQueryWrapper<Question> queryWrapper = new LambdaQueryWrapper<>();
-        queryWrapper.eq(!ObjectUtils.isEmpty(queryDTO.getCategoryId()),
-                Question::getCategoryId,queryDTO.getCategoryId());
+        // 分类查询逻辑：
+        //  1. 如果传了 categoryIds，说明点击的是一级分类，查它下面所有子分类
+        //  2. 如果只传了 categoryId，说明点击的是二级分类，只查当前分类
+        if (queryDTO.getCategoryIds() != null && !queryDTO.getCategoryIds().isEmpty()) {
+            queryWrapper.in(Question::getCategoryId, queryDTO.getCategoryIds());
+        } else if (queryDTO.getCategoryId() != null) {
+            queryWrapper.eq(Question::getCategoryId, queryDTO.getCategoryId());
+        }
         queryWrapper.eq(!ObjectUtils.isEmpty(queryDTO.getType()),
                 Question::getType,queryDTO.getType());
         queryWrapper.eq(!ObjectUtils.isEmpty(queryDTO.getDifficulty()),
@@ -208,7 +218,6 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             throw new BusinessException("请设置一个或多个正确选项！");
         }
 
-        answer.setAnswer(sj.toString());
         //没有id主键,有questionID → 根据条件更新
         questionAnswerMapper.update(
                 null,
@@ -279,10 +288,47 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             popularQuestions.addAll(BeanUtil.copyToList(questions, QuestionPageVO.class));
         }
 
-        //5 数据齐了后统一插入答案或选项
+        //5. 数据齐了后统一插入答案或选项
         fillAnswerAndChoice(popularQuestions);
 
         return popularQuestions;
+    }
+
+    @Transactional(rollbackFor = Exception.class)
+    @Override
+    public void delete(Long id) {
+
+        if(ObjectUtils.isNull(id)){
+            throw new BusinessException("非法参数：题目id不能为空");
+        }
+
+        //1. 如果关联了试卷表则不可删除
+
+        //1.1 检查题目是否关联了试卷
+        boolean exists = paperQuestionMapper.exists(
+                new LambdaQueryWrapper<PaperQuestion>()
+                        .eq(PaperQuestion::getQuestionId, id)
+        );
+        if(exists){
+            throw new BusinessException("该题目已经关联了试卷,删除失败!");
+        }
+
+        //2. 无关联直接连环删除题目及其答案与选项
+        questionChoiceMapper.delete(
+                new LambdaQueryWrapper<QuestionChoice>()
+                        .eq(QuestionChoice::getQuestionId,id)
+        );
+        questionAnswerMapper.delete(
+                new LambdaQueryWrapper<QuestionAnswer>()
+                        .eq(QuestionAnswer::getQuestionId,id)
+        );
+        //主表最后删
+        baseMapper.deleteById(id);
+
+        //3. 同步清理存在redis中的热门题目
+        //必须清掉死数据，否则热度榜去 MySQL 批量查（selectBatchIds）时就会查不到或者报错
+        redisUtils.zRemove(CacheConstants.POPULAR_QUESTIONS_KEY,id);
+
     }
 
 

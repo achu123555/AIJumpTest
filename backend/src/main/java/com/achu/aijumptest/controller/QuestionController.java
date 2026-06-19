@@ -80,9 +80,20 @@ public class QuestionController {
         return Result.success();
     }
 
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除题目接口",description = "根据id删除题目及其关联子信息,例如答案和选项")
+    public Result<Void> delete(@PathVariable("id") @Parameter(description = "题目id") Long id){
+        //1.删除
+        log.info("开始删除题目,题目id为：{}",id);
+        questionService.delete(id);
+
+        //2.结果
+        return Result.success();
+    }
+
     @GetMapping("/popular")
     @Operation(summary = "查询热门题目接口",description = "根据传入的size参数,查询size个热门题目")
-    public Result<List<QuestionPageVO>> getPopularQuestion(@Parameter(description = "查询数量") Integer size){
+    public Result<List<QuestionPageVO>> getPopularQuestion(@RequestParam("size") @Parameter(description = "查询数量") Integer size){
 
         log.info("要查询的热门题目数量为：{}",size);
         List<QuestionPageVO> popularQuestions = questionService.getPopularQuestion(size);

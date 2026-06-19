@@ -1,242 +1,116 @@
-# Vue3 + Element Plus 学生端 + 管理端
+# AIJumpTest 前端
 
-项目已接入 Spring Boot 后端轮播图接口，包含：
+Vue3 + Element Plus 前端项目，当前版本已经接入后端接口版：
 
-- 学生端首页：`/home`
-- 管理端轮播图管理：`/admin/banner-manage`
-- 管理端类别管理：`/admin/category-manage`
-- 其他管理模块：暂时显示「待开发」
+- 管理端轮播图完整 CRUD
+- 管理端类别管理
+- 管理端题目管理
+- 学生端首页启用轮播图展示
+- 学生端热门题目展示
+- 学生端题库练习与题目详情页
 
-## 技术栈
-
-- Vue 3
-- Vite
-- Vue Router
-- Element Plus
-- @element-plus/icons-vue
-- fetch 请求封装，不依赖 axios
-
-## 运行方式
-
-先启动后端，默认后端地址：
-
-```text
-http://localhost:8080
-```
-
-再启动前端：
+## 启动
 
 ```bash
 npm install
 npm run dev
 ```
 
-启动后访问学生端：
+前端默认地址：
 
 ```text
 http://localhost:3001/home
 ```
 
-管理端地址：
+后端默认代理地址：
 
 ```text
-http://localhost:3001/admin/banner-manage
-http://localhost:3001/admin/category-manage
+http://localhost:8080
 ```
 
-## 已接入的后端接口
-
-### 学生端首页轮播图
+## 页面地址
 
 ```text
-GET /api/banners/active
+学生端首页：      /home
+学生端题库：      /questions
+学生端题目详情：  /question/:id
+管理端题目管理：  /admin/question-manage
+管理端类别管理：  /admin/category-manage
+管理端轮播图：    /admin/banner-manage
 ```
 
-用途：只获取启用状态的轮播图，并按 `sortOrder` 升序展示。
-
-### 管理端轮播图列表
+## 题目接口
 
 ```text
-GET /api/banners/list
+GET    /api/questions/list
+GET    /api/questions/{id}
+POST   /api/questions
+PUT    /api/questions
+DELETE /api/questions/{id}
+GET    /api/questions/popular?size=6
 ```
 
-用途：管理端展示全部轮播图，包括启用和禁用状态。
-
-### 根据 ID 查询轮播图详情
-
-```text
-GET /api/banners/{id}
-```
-
-用途：点击编辑时获取单条轮播图详情。
-
-### 上传轮播图图片
-
-```text
-POST /api/banners/upload-image
-Content-Type: multipart/form-data
-file: 图片文件
-```
-
-用途：把图片上传到阿里云 OSS，后端返回可访问的图片 URL。
-
-### 新增轮播图
-
-```text
-POST /api/banners/add
-Content-Type: application/json
-```
-
-请求体示例：
-
-```json
-{
-  "title": "Java + AI 应用开发",
-  "description": "适合放在学生端首页展示",
-  "imageUrl": "https://xxx.oss-cn-beijing.aliyuncs.com/banner/xxx.jpg",
-  "linkUrl": "https://www.atguigu.com",
-  "sortOrder": 1,
-  "isActive": true
-}
-```
-
-### 更新轮播图
-
-```text
-PUT /api/banners/update
-Content-Type: application/json
-```
-
-请求体示例：
-
-```json
-{
-  "id": 1,
-  "title": "更新后的标题",
-  "description": "更新后的描述",
-  "imageUrl": "https://xxx.oss-cn-beijing.aliyuncs.com/banner/xxx.jpg",
-  "linkUrl": "",
-  "sortOrder": 1,
-  "isActive": true
-}
-```
-
-### 删除轮播图
-
-```text
-DELETE /api/banners/delete/{id}
-```
-
-### 管理端轮播图状态切换
-
-```text
-PUT /api/banners/toggle/{id}?isActive=true
-PUT /api/banners/toggle/{id}?isActive=false
-```
-
-
-
-## 已接入的分类管理接口
-
-### 查询分类平铺列表
-
-```text
-GET /api/categories
-```
-
-### 查询分类树状列表
+## 分类接口
 
 ```text
 GET /api/categories/tree
 ```
 
-用途：管理端类别管理页面展示一级分类和二级分类。
+## 轮播图点击逻辑
 
-### 新增子分类
+学生端首页轮播图点击保持最新版逻辑：
 
-```text
-POST /api/categories
-Content-Type: application/json
-```
+```js
+if (/^https?:\/\//i.test(banner.linkUrl)) {
+  window.open(banner.linkUrl, '_blank')
+  return
+}
 
-请求体示例：
-
-```json
-{
-  "parentId": 13,
-  "name": "Java基础",
-  "sort": 1
+if (/^www\./i.test(banner.linkUrl)) {
+  window.open(`https://${banner.linkUrl}`, '_blank')
+  return
 }
 ```
 
-### 更新子分类
+## 说明
+
+题目管理里的“批量导入”和“AI生成”当前只是保留入口，因为你后端还没有提供对应接口。
+
+如果编辑选择题时报错，请检查后端 `QuestionServiceImpl.update` 的选择题分支：当前代码里 `questionAnswer` 为 `null` 时又调用了 `answer.setAnswer(...)`，可能会出现空指针，需要后端修一下后才能完整更新选择题选项。
+
+## 本次更新：题库分类筛选逻辑
+
+学生端题库页和管理端题目管理页已补上右侧分类树筛选逻辑：
+
+- 点击「全部」：清空题型和分类，查询所有题目。
+- 点击一级主干分类，例如「选择题 / 判断题 / 简答题」：前端按题目 `type` 查询，不传 `categoryId`。
+- 点击二级分支分类，例如「Java基础 / Spring框架 / MySQL数据库」：前端按 `categoryId` 精确查询，并同步父级题型。
+
+这样不用改后端分页接口，继续使用你已有的：
 
 ```text
-PUT /api/categories
-Content-Type: application/json
+GET /api/questions/list?type=CHOICE
+GET /api/questions/list?type=TEXT&categoryId=7
 ```
 
-请求体示例：
+注意：数据库里简答题类型是 `TEXT`，所以前端已把「简答题」的 value 从旧的 `SHORT_ANSWER` 统一改成 `TEXT`。
 
-```json
-{
-  "id": 16,
-  "parentId": 13,
-  "name": "Java基础",
-  "sort": 1
-}
+## 本次更新：题目练习确认与下一题
+
+- 学生端题目详情页将“查看答案和解析”改为“确定”。
+- 点击“确定”后，前端会根据当前作答判断对错，然后展示参考答案和题目解析。
+- 去掉“重做一遍”按钮。
+- 新增“下一题”按钮：优先按当前题目的 `categoryId` 查询同一分类题目，跳转到列表顺序里的下一道题；如果没有下一题，会提示“没有下一题了~”。
+- 选择题支持单选/多选判断；判断题兼容“正确/错误、true/false、1/0”等答案格式；简答题按去空格后的文本一致性做基础判断。
+
+
+## 请求工具说明
+
+本版本已将前端请求工具切换为 axios，统一封装在 `src/api/request.js`。业务接口文件仍然保持原来的 `request(url, options)` 调用方式，方便后续继续扩展。
+
+首次运行请执行：
+
+```bash
+npm install
+npm run dev
 ```
-
-### 删除子分类
-
-```text
-DELETE /api/categories/{id}
-```
-
-注意：当前后端逻辑中，一级分类不可删除；二级分类如果已经关联题目，也不可删除。
-
-## 主要文件
-
-```text
-src/api/request.js          fetch 统一请求封装
-src/api/banner.js            轮播图接口统一管理
-src/api/category.js          分类接口统一管理
-src/views/Home.vue           学生端首页，展示启用轮播图
-src/views/BannerManage.vue   管理端轮播图完整 CRUD 页面
-src/views/CategoryManage.vue 管理端类别管理页面
-src/router/index.js         路由配置
-vite.config.js              开发代理配置
-```
-
-## 返回格式要求
-
-前端默认适配这种统一返回格式：
-
-```json
-{
-  "code": 200,
-  "message": "success",
-  "data": [
-    {
-      "id": 1,
-      "title": "轮播图标题",
-      "description": "轮播图描述",
-      "imageUrl": "图片地址",
-      "linkUrl": "跳转地址",
-      "sortOrder": 1,
-      "isActive": true,
-      "createTime": "2026-06-09T13:47:00"
-    }
-  ]
-}
-```
-
-## 代理说明
-
-开发环境通过 `vite.config.js` 代理接口：
-
-```text
-/api -> http://localhost:8080
-```
-
-如果数据库里的图片地址是 `/uploads/xxx`、`/upload/xxx`、`/files/xxx`、`/images/xxx`，Vite 也已经配置了代理，会转发到后端。
