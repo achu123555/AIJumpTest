@@ -12,6 +12,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springdoc.core.annotations.ParameterObject;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 /**
  * projectName: com.achu.aijumptest.controller.QuestionController
  *
@@ -76,5 +78,15 @@ public class QuestionController {
         log.info("开始更新题目。要编辑的题目为：{}",updateDTO);
         questionService.update(updateDTO);
         return Result.success();
+    }
+
+    @GetMapping("/popular")
+    @Operation(summary = "查询热门题目接口",description = "根据传入的size参数,查询size个热门题目")
+    public Result<List<QuestionPageVO>> getPopularQuestion(@Parameter(description = "查询数量") Integer size){
+
+        log.info("要查询的热门题目数量为：{}",size);
+        List<QuestionPageVO> popularQuestions = questionService.getPopularQuestion(size);
+
+        return Result.success(popularQuestions);
     }
 }

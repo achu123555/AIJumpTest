@@ -1,15 +1,18 @@
 package com.achu.aijumptest.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
+import com.achu.aijumptest.common.CacheConstants;
 import com.achu.aijumptest.dto.QuestionDTO;
 import com.achu.aijumptest.entity.Question;
 import com.achu.aijumptest.entity.QuestionAnswer;
 import com.achu.aijumptest.entity.QuestionChoice;
+import com.achu.aijumptest.enums.QuestionType;
 import com.achu.aijumptest.exception.BusinessException;
 import com.achu.aijumptest.mapper.QuestionAnswerMapper;
 import com.achu.aijumptest.mapper.QuestionChoiceMapper;
 import com.achu.aijumptest.mapper.QuestionMapper;
 import com.achu.aijumptest.service.QuestionService;
+import com.achu.aijumptest.utils.RedisUtils;
 import com.achu.aijumptest.vo.QuestionPageVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
@@ -39,6 +42,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     private final QuestionMapper questionMapper;
     private final QuestionAnswerMapper questionAnswerMapper;
     private final QuestionChoiceMapper questionChoiceMapper;
+    private final RedisUtils redisUtils;
 
 
     @Override
@@ -148,7 +152,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
         //3.根据题目类型去决定是否填充选项,只有选择题有选项
         String type = questionPageVO.getType();
-        if("CHOICE".equals(type)){
+        if(QuestionType.CHOICE.name().equals(type)){
             List<QuestionChoice> choices = questionChoiceMapper.selectList(
                     new LambdaQueryWrapper<QuestionChoice>()
                             .eq(QuestionChoice::getQuestionId, questionPageVO.getId())
@@ -156,6 +160,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             questionPageVO.setQuestionChoiceList(choices);
         }
 
+        //记录题目热度 ZINCRBY aijumptext:question:popular 1 题目ID
+        redisUtils.zIncrementScore(CacheConstants.POPULAR_QUESTIONS_KEY, id, 1D);
         return questionPageVO;
     }
 
@@ -218,6 +224,67 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         questionChoiceMapper.insert(choices);
     }
 
+    @Override
+    public List<QuestionPageVO> getPopularQuestion(Integer size) {
+
+
+        //1.从redis中查出6条分值最高的id
+        Set<Object> idsSet = redisUtils.zReverseRange(
+                CacheConstants.POPULAR_QUESTIONS_KEY,
+                0,
+                size - 1
+        );
+
+        //2.情况一：如果 Redis 此时是空的,直接去数据库保底拉取最新的size条
+        if(idsSet == null || idsSet.isEmpty()){
+            List<Question> questions = baseMapper.selectList(
+                    new LambdaQueryWrapper<Question>()
+                            .orderByDesc(Question::getCreateTime)
+                            .last("LIMIT " + size)
+            );
+            List<QuestionPageVO> voList = BeanUtil.copyToList(questions, QuestionPageVO.class);
+            fillAnswerAndChoice(voList);
+            return voList;
+        }
+
+        //3. 装填redis热门题目数据
+
+        //3.1 将装id的Set<Object>转成List<Long>,再批量查出热门题目
+        List<Long> idsList = idsSet.stream()
+                .map(id -> Long.valueOf(id.toString()))
+                .toList();
+        List<Question> redisQuestions = baseMapper.selectBatchIds(idsList);
+        //3.2 因Mysql查询的是乱序的数据,需要自己排序
+        Map<Long, Question> questionMap = redisQuestions.stream()
+                .collect(Collectors.toMap(Question::getId, q -> q));
+        List<Question> sortQuestions = new ArrayList<>();
+        for (Long id : idsList) {
+            Question q = questionMap.get(id);
+            if(q != null){
+                sortQuestions.add(q);
+            }
+        }
+        //3.3 将排好序的热门题目，拷贝成 VO 并塞入总集合
+        List<QuestionPageVO> popularQuestions = new ArrayList<>(BeanUtil.copyToList(sortQuestions, QuestionPageVO.class));
+
+        //4. 情况二：如果redis中的热门题目不足size条,要再去数据库拉取最新的[size - idsList.size()]条
+        int diff = size - idsSet.size();
+        if(diff > 0){
+            List<Question> questions = baseMapper.selectList(
+                    new LambdaQueryWrapper<Question>()
+                            .notIn(Question::getId,idsList) //排除重复题目
+                            .orderByDesc(Question::getCreateTime)
+                            .last("LIMIT " + diff)
+            );
+            popularQuestions.addAll(BeanUtil.copyToList(questions, QuestionPageVO.class));
+        }
+
+        //5 数据齐了后统一插入答案或选项
+        fillAnswerAndChoice(popularQuestions);
+
+        return popularQuestions;
+    }
+
 
     private void fillAnswerAndChoice(List<QuestionPageVO> records) {
         //1.判空
@@ -247,7 +314,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
             questionPageVO.setQuestionAnswer(
                     answerMap.getOrDefault(questionPageVO.getId(),new QuestionAnswer()));
             //只有选择题才有选项
-            if("CHOICE".equals(questionPageVO.getType())){
+            if(QuestionType.CHOICE.name().equals(questionPageVO.getType())){
                 List<QuestionChoice> choices = choiceMap.getOrDefault(questionPageVO.getId(),new ArrayList<>());
                 choices.sort(Comparator.comparingInt(QuestionChoice::getSort));
                 questionPageVO.setQuestionChoiceList(choices);

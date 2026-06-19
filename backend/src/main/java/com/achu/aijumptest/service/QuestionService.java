@@ -6,6 +6,8 @@ import com.achu.aijumptest.vo.QuestionPageVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 
+import java.util.List;
+
 /**
  * projectName: com.achu.aijumptest.service.QuestionService
  *
@@ -47,4 +49,11 @@ public interface QuestionService extends IService<Question> {
      * @param updateDTO 更新数据传输DTO
      */
     void update(QuestionDTO.SaveAndUpdate updateDTO);
+
+    /**
+     * 根据传入的size查找size条热门题目
+     * @param size 查找的热门题目数量
+     * @return 完整题目列表
+     */
+    List<QuestionPageVO> getPopularQuestion(Integer size);
 }
