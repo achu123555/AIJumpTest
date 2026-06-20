@@ -19,7 +19,8 @@
         <jaxb.api.verison>2.3.1</jaxb.api.verison>
         <javax.activation.version>1.1.1</javax.activation.version>
         <jaxb-runtime.version>2.3.3</jaxb-runtime.version>
-        <springdoc-verison>2.7.0</springdoc-verison>
+        <springdoc.verison>2.7.0</springdoc.verison>
+        <easy-excel.version>4.0.3</easy-excel.version>
     </properties>
     <dependencies>
         <dependency>
@@ -64,7 +65,7 @@
         <dependency>
             <groupId>org.springdoc</groupId>
             <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-            <version>${springdoc-verison}</version>
+            <version>${springdoc.verison}</version>
         </dependency>
 
         <dependency>
@@ -112,6 +113,11 @@
             <artifactId>commons-pool2</artifactId>
         </dependency>
 
+        <dependency>
+            <groupId>com.alibaba</groupId>
+            <artifactId>easyexcel</artifactId>
+            <version>${easy-excel.version}</version>
+        </dependency>
     </dependencies>
     <dependencyManagement>
         <dependencies>
