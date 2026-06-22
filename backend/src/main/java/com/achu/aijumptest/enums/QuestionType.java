@@ -18,5 +18,5 @@ public enum QuestionType {
     JUDGE("JUDGE"),
     TEXT("TEXT");
 
-    private final String Type;
+    private final String type;
 }

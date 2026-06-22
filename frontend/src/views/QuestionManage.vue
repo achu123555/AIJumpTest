@@ -11,8 +11,9 @@
       <div class="action-row">
         <el-button type="primary" :icon="Plus" @click="openAddDialog">添加题目</el-button>
         <el-button type="danger" :icon="Delete" :disabled="!selectedRows.length" @click="handleBatchDelete">批量删除({{ selectedRows.length }})</el-button>
-        <el-dropdown split-button type="success" @click="showPending('批量导入')"><span>批量导入</span><template #dropdown><el-dropdown-menu><el-dropdown-item @click="showPending('下载题目模板')">下载模板</el-dropdown-item><el-dropdown-item @click="showPending('Excel导入题目')">Excel导入</el-dropdown-item></el-dropdown-menu></template></el-dropdown>
-        <el-button type="warning" :icon="MagicStick" @click="showPending('AI生成题目')">AI生成</el-button>
+        <el-dropdown split-button type="success" :loading="importLoading" @click="triggerImportFile"><span>批量导入</span><template #dropdown><el-dropdown-menu><el-dropdown-item :disabled="templateLoading" @click="handleDownloadTemplate">下载模板</el-dropdown-item><el-dropdown-item :disabled="importLoading" @click="triggerImportFile">Excel导入</el-dropdown-item></el-dropdown-menu></template></el-dropdown>
+        <el-button type="success" plain :icon="Download" :loading="exportLoading" @click="handleExportExcel">导出Excel</el-button>
+        <el-button type="warning" :icon="MagicStick" @click="aiDialogVisible = true">AI生成</el-button>
       </div>
     </el-card>
 
@@ -55,19 +56,26 @@
     </el-dialog>
 
     <el-dialog v-model="detailDialog.visible" title="题目详情" width="760px"><div v-if="detailDialog.data" class="detail-box"><div class="detail-title">{{ detailDialog.data.title }}</div><div class="detail-tags"><el-tag :type="getTypeTag(detailDialog.data.type)">{{ getTypeLabel(detailDialog.data.type) }}</el-tag><el-tag :type="getDifficultyTag(detailDialog.data.difficulty)">{{ getDifficultyLabel(detailDialog.data.difficulty) }}</el-tag><el-tag type="info">{{ getCategoryName(detailDialog.data.categoryId) }}</el-tag><el-tag type="warning">{{ detailDialog.data.score || 0 }} 分</el-tag></div><div v-if="normalizeQuestionType(detailDialog.data.type) === 'CHOICE'" class="detail-section"><h4>选项</h4><p v-for="(choice, index) in detailDialog.data.questionChoiceList || []" :key="choice.id || index">{{ optionLabel(index) }}. {{ choice.content }} <el-tag v-if="choice.isCorrect" size="small" type="success">正确</el-tag></p></div><div class="detail-section"><h4>参考答案</h4><p>{{ detailDialog.data.questionAnswer?.answer || '暂无参考答案' }}</p></div><div class="detail-section"><h4>题目解析</h4><p>{{ detailDialog.data.analysis || '暂无解析' }}</p></div></div></el-dialog>
+    <AiGenerateQuestionDialog v-model="aiDialogVisible" :category-tree="categoryTree" @imported="handleAiImported" />
+
+    <!-- 隐藏的文件选择框：点击“Excel导入”按钮时通过 JS 触发 -->
+    <input ref="excelFileInputRef" class="excel-file-input" type="file" accept=".xls,.xlsx" @change="handleImportFileChange" />
   </section>
 </template>
 
 <script setup>
 import { computed, onMounted, reactive, ref } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { Delete, Edit, MagicStick, Plus, Refresh, Search, View } from '@element-plus/icons-vue'
+import { Delete, Download, Edit, MagicStick, Plus, Refresh, Search, View } from '@element-plus/icons-vue'
 import { getCategoryTree } from '../api/category'
-import { addQuestion, deleteQuestion, getQuestionById, getQuestionPage, updateQuestion } from '../api/question'
+import AiGenerateQuestionDialog from '../components/AiGenerateQuestionDialog.vue'
+import { addQuestion, deleteQuestion, downloadQuestionTemplate, exportQuestionExcel, getQuestionById, getQuestionPage, importQuestionExcel, updateQuestion } from '../api/question'
 import { DIFFICULTY_OPTIONS, QUESTION_TYPES, getDifficultyLabel, getDifficultyTag, getTypeLabel, getTypeTag, normalizeDifficulty, normalizeQuestionType, optionLabel, inferQuestionTypeByCategoryName } from '../utils/questionMeta'
+import { downloadBlob } from '../utils/download'
 
 const loading = ref(false), categoryLoading = ref(false), submitLoading = ref(false)
-const selectedRows = ref([]), questionList = ref([]), categoryTree = ref([]), flatCategories = ref([]), formRef = ref(null)
+const importLoading = ref(false), exportLoading = ref(false), templateLoading = ref(false), aiDialogVisible = ref(false)
+const selectedRows = ref([]), questionList = ref([]), categoryTree = ref([]), flatCategories = ref([]), formRef = ref(null), excelFileInputRef = ref(null)
 const query = reactive({ keyword: '', type: '', difficulty: '', categoryId: '' })
 const page = reactive({ current: 1, size: 10, total: 0 })
 const formDialog = reactive({ visible: false, mode: 'add' })
@@ -111,18 +119,119 @@ function handleCategoryClick(node) {
 }
 function resetCategoryFilter() { query.categoryId = ''; query.type = ''; page.current = 1; loadQuestionPage() }
 function handleSelectionChange(rows) { selectedRows.value = rows }
-function showPending(name) { ElMessage.info(`${name}接口还没接入，当前先保留入口`) }
+/**
+ * 组装导出筛选条件。
+ *
+ * 注意：导出接口复用后端的 QuestionDTO.Query，
+ * 这里只传当前页面的搜索条件，不传 current / size，表示导出所有匹配题目。
+ */
+function buildExcelQueryParams() {
+  return {
+    keyword: query.keyword,
+    type: query.type,
+    difficulty: query.difficulty,
+    categoryId: query.categoryId
+  }
+}
+
+/**
+ * 下载题目导入模板。
+ */
+async function handleDownloadTemplate() {
+  templateLoading.value = true
+  try {
+    const response = await downloadQuestionTemplate()
+    downloadBlob(response.data, '题目导入模板.xlsx', response.headers?.['content-disposition'])
+    ElMessage.success('模板下载成功')
+  } catch (error) {
+    console.error('下载题目模板失败：', error)
+    ElMessage.error(error.message || '下载题目模板失败')
+  } finally {
+    templateLoading.value = false
+  }
+}
+
+/**
+ * 导出当前筛选条件下的题目 Excel。
+ */
+async function handleExportExcel() {
+  exportLoading.value = true
+  try {
+    const response = await exportQuestionExcel(buildExcelQueryParams())
+    downloadBlob(response.data, '题目列表.xlsx', response.headers?.['content-disposition'])
+    ElMessage.success('题目导出成功')
+  } catch (error) {
+    console.error('导出题目失败：', error)
+    ElMessage.error(error.message || '导出题目失败')
+  } finally {
+    exportLoading.value = false
+  }
+}
+
+/**
+ * 触发隐藏的文件选择框。
+ */
+function triggerImportFile() {
+  excelFileInputRef.value?.click()
+}
+
+/**
+ * 选择 Excel 文件后上传到后端批量导入。
+ */
+async function handleImportFileChange(event) {
+  const file = event.target.files?.[0]
+
+  // 清空 input 的值，保证用户连续选择同一个文件时也会触发 change。
+  event.target.value = ''
+
+  if (!file) return
+
+  const isExcel = /\.(xls|xlsx)$/i.test(file.name)
+  if (!isExcel) {
+    ElMessage.warning('请上传 .xls 或 .xlsx 格式的 Excel 文件')
+    return
+  }
+
+  try {
+    await ElMessageBox.confirm(
+      `确定导入文件「${file.name}」吗？导入成功后题目列表会自动刷新。`,
+      '批量导入确认',
+      {
+        type: 'warning',
+        confirmButtonText: '开始导入',
+        cancelButtonText: '取消'
+      }
+    )
+  } catch (error) {
+    return
+  }
+
+  importLoading.value = true
+  try {
+    await importQuestionExcel(file)
+    ElMessage.success('题目批量导入成功')
+    await loadQuestionPage()
+    await loadCategoryTree()
+  } catch (error) {
+    console.error('批量导入题目失败：', error)
+    ElMessage.error(error.message || '批量导入题目失败，请检查 Excel 内容')
+  } finally {
+    importLoading.value = false
+  }
+}
+
+async function handleAiImported() { await loadQuestionPage(); await loadCategoryTree() }
 function openAddDialog() { formDialog.mode = 'add'; resetForm(); formDialog.visible = true }
 async function openEditDialog(row) { formDialog.mode = 'edit'; try { const detail = await getQuestionById(row.id); resetForm(transformQuestionToForm(detail)); formDialog.visible = true } catch (error) { console.error('查询题目详情失败：', error); ElMessage.error(error.message || '查询题目详情失败') } }
 async function openDetail(row) { try { const detail = await getQuestionById(row.id); detailDialog.data = detail; detailDialog.visible = true } catch (error) { console.error('查看题目详情失败：', error); ElMessage.error(error.message || '查看题目详情失败') } }
-function transformQuestionToForm(question = {}) { const type = normalizeQuestionType(question.type); const answer = question.questionAnswer?.answer || ''; const correctSet = new Set(String(answer).split(',').map(item => item.trim()).filter(Boolean)); const rawChoices = Array.isArray(question.questionChoiceList) ? question.questionChoiceList : []; const choices = rawChoices.length ? rawChoices.slice().sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0)).map((choice, index) => { const sort = Number(choice.sort || index + 1); return createChoice(sort, choice.content || '', Boolean(choice.isCorrect) || correctSet.has(optionLabel(sort - 1))) }) : [createChoice(1), createChoice(2)]; return { id: question.id || null, title: question.title || '', type, isMultiple: Boolean(question.isMultiple) || correctSet.size > 1 || choices.filter(item => item.isCorrect).length > 1, categoryId: question.categoryId || null, difficulty: normalizeDifficulty(question.difficulty), score: Number(question.score || 5), analysis: question.analysis || '', answer, answerId: question.questionAnswer?.id || null, questionChoiceList: choices } }
+function transformQuestionToForm(question = {}) { const type = normalizeQuestionType(question.type); const answer = question.questionAnswer?.answer || ''; const correctSet = new Set(String(answer).split(',').map(item => item.trim()).filter(Boolean)); const rawChoices = Array.isArray(question.questionChoiceList) ? question.questionChoiceList : []; const choices = rawChoices.length ? rawChoices.slice().sort((a, b) => Number(a.sort || 0) - Number(b.sort || 0)).map((choice, index) => { const sort = Number(choice.sort || index + 1); return createChoice(sort, choice.content || '', Boolean(choice.isCorrect) || correctSet.has(optionLabel(sort - 1))) }) : [createChoice(1), createChoice(2)]; return { id: question.id || null, title: question.title || '', type, isMultiple: Boolean(question.multi ?? question.isMultiple) || correctSet.size > 1 || choices.filter(item => item.isCorrect).length > 1, categoryId: question.categoryId || null, difficulty: normalizeDifficulty(question.difficulty), score: Number(question.score || 5), analysis: question.analysis || '', answer, answerId: question.questionAnswer?.id || null, questionChoiceList: choices } }
 function handleTypeChange() { form.answer = form.type === 'JUDGE' ? '正确' : ''; if (form.type === 'CHOICE' && (!form.questionChoiceList || form.questionChoiceList.length < 2)) form.questionChoiceList = [createChoice(1), createChoice(2)] }
 function handleMultipleChange(value) { if (!value) { let found = false; form.questionChoiceList.forEach(choice => { if (choice.isCorrect && !found) { found = true; return } choice.isCorrect = false }) } }
 function handleChoiceCorrectChange(index) { if (!form.isMultiple && form.questionChoiceList[index].isCorrect) form.questionChoiceList.forEach((choice, choiceIndex) => { choice.isCorrect = choiceIndex === index }) }
 function addChoice() { if (form.questionChoiceList.length >= 8) { ElMessage.warning('最多添加 8 个选项'); return } form.questionChoiceList.push(createChoice(form.questionChoiceList.length + 1)) }
 function removeChoice(index) { form.questionChoiceList.splice(index, 1); form.questionChoiceList.forEach((choice, choiceIndex) => { choice.sort = choiceIndex + 1 }) }
 function validateChoiceList() { if (form.type !== 'CHOICE') return true; const hasEmpty = form.questionChoiceList.some(choice => !choice.content?.trim()); if (hasEmpty) { ElMessage.warning('请把选项内容填写完整'); return false } const correctCount = form.questionChoiceList.filter(choice => choice.isCorrect).length; if (!correctCount) { ElMessage.warning('请选择至少一个正确答案'); return false } if (!form.isMultiple && correctCount > 1) { ElMessage.warning('单选题只能设置一个正确答案'); return false } return true }
-function buildPayload() { const base = { title: form.title, type: form.type, categoryId: form.categoryId, difficulty: form.difficulty, score: form.score, analysis: form.analysis, isMultiple: form.type === 'CHOICE' ? form.isMultiple : false }; if (formDialog.mode === 'edit') base.id = form.id; if (form.type === 'CHOICE') return { ...base, questionAnswer: null, questionChoiceList: form.questionChoiceList.map((choice, index) => ({ content: choice.content, isCorrect: Boolean(choice.isCorrect), sort: index + 1 })) }; return { ...base, questionAnswer: { id: formDialog.mode === 'edit' ? form.answerId : undefined, answer: form.answer }, questionChoiceList: null } }
+function buildPayload() { const base = { title: form.title, type: form.type, categoryId: form.categoryId, difficulty: form.difficulty, score: form.score, analysis: form.analysis, multi: form.type === 'CHOICE' ? form.isMultiple : false }; if (formDialog.mode === 'edit') base.id = form.id; if (form.type === 'CHOICE') return { ...base, questionAnswer: null, questionChoiceList: form.questionChoiceList.map((choice, index) => ({ content: choice.content, isCorrect: Boolean(choice.isCorrect), sort: index + 1 })) }; return { ...base, questionAnswer: { id: formDialog.mode === 'edit' ? form.answerId : undefined, answer: form.answer }, questionChoiceList: null } }
 async function submitForm() { try { await formRef.value?.validate() } catch (error) { return } if (!validateChoiceList()) return; submitLoading.value = true; try { const payload = buildPayload(); if (formDialog.mode === 'add') { await addQuestion(payload); ElMessage.success('新增题目成功') } else { await updateQuestion(payload); ElMessage.success('更新题目成功') } formDialog.visible = false; await loadQuestionPage(); await loadCategoryTree() } catch (error) { console.error('保存题目失败：', error); ElMessage.error(error.message || '保存题目失败') } finally { submitLoading.value = false } }
 async function handleDelete(row) { try { await ElMessageBox.confirm(`确定删除这道题吗？\n${row.title}`, '删除确认', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }); await deleteQuestion(row.id); ElMessage.success('删除成功'); await loadQuestionPage(); await loadCategoryTree() } catch (error) { if (error === 'cancel' || error === 'close') return; console.error('删除题目失败：', error); ElMessage.error(error.message || '删除题目失败') } }
 async function handleBatchDelete() { if (!selectedRows.value.length) return; try { await ElMessageBox.confirm(`确定删除选中的 ${selectedRows.value.length} 道题吗？`, '批量删除确认', { type: 'warning', confirmButtonText: '删除', cancelButtonText: '取消' }); for (const row of selectedRows.value) await deleteQuestion(row.id); ElMessage.success('批量删除完成'); await loadQuestionPage(); await loadCategoryTree() } catch (error) { if (error === 'cancel' || error === 'close') return; console.error('批量删除题目失败：', error); ElMessage.error(error.message || '批量删除题目失败') } }
@@ -131,5 +240,5 @@ onMounted(async () => { await loadCategoryTree(); await loadQuestionPage() })
 </script>
 
 <style scoped>
-.question-page{min-height:100%}.search-card,.table-card,.category-card{border-radius:8px;border:0}.search-card{margin-bottom:18px}.search-row{display:grid;grid-template-columns:minmax(260px,1fr) 240px 240px 90px 90px;gap:16px;align-items:center}.action-row{display:flex;align-items:center;gap:12px;margin-top:16px}.content-grid{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px}.question-title{max-width:620px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}.question-sub{margin-top:6px;display:flex;gap:12px;color:#8a8f99;font-size:12px}.pager-row{display:flex;align-items:center;justify-content:space-between;margin-top:18px}.total-text{font-size:13px;color:#606266}.category-card{min-height:480px}.category-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.category-head h3{margin:0;font-size:18px;font-weight:800}.category-node{width:100%;display:flex;justify-content:space-between;gap:8px;padding-right:6px;font-size:14px}.category-node em{color:#6b7280;font-style:normal}.question-form :deep(.el-select),.question-form :deep(.el-tree-select),.question-form :deep(.el-input-number){width:100%}.choice-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 110px 34px;align-items:center;gap:12px}.detail-title{font-size:20px;font-weight:800;line-height:1.6;margin-bottom:14px}.detail-tags{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}.detail-section{padding:16px 0;border-top:1px solid #eef0f3}.detail-section h4{margin:0 0 10px;font-size:15px;color:#303133}.detail-section p{margin:8px 0;line-height:1.75;color:#4b5563}@media(max-width:1280px){.content-grid{grid-template-columns:1fr}.search-row{grid-template-columns:1fr 1fr}}
+.question-page{min-height:100%}.excel-file-input{display:none}.search-card,.table-card,.category-card{border-radius:8px;border:0}.search-card{margin-bottom:18px}.search-row{display:grid;grid-template-columns:minmax(260px,1fr) 240px 240px 90px 90px;gap:16px;align-items:center}.action-row{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:16px}.content-grid{display:grid;grid-template-columns:minmax(0,1fr) 290px;gap:18px}.question-title{max-width:620px;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;font-weight:600}.question-sub{margin-top:6px;display:flex;gap:12px;color:#8a8f99;font-size:12px}.pager-row{display:flex;align-items:center;justify-content:space-between;margin-top:18px}.total-text{font-size:13px;color:#606266}.category-card{min-height:480px}.category-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}.category-head h3{margin:0;font-size:18px;font-weight:800}.category-node{width:100%;display:flex;justify-content:space-between;gap:8px;padding-right:6px;font-size:14px}.category-node em{color:#6b7280;font-style:normal}.question-form :deep(.el-select),.question-form :deep(.el-tree-select),.question-form :deep(.el-input-number){width:100%}.choice-row{width:100%;display:grid;grid-template-columns:minmax(0,1fr) 110px 34px;align-items:center;gap:12px}.detail-title{font-size:20px;font-weight:800;line-height:1.6;margin-bottom:14px}.detail-tags{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:20px}.detail-section{padding:16px 0;border-top:1px solid #eef0f3}.detail-section h4{margin:0 0 10px;font-size:15px;color:#303133}.detail-section p{margin:8px 0;line-height:1.75;color:#4b5563}@media(max-width:1280px){.content-grid{grid-template-columns:1fr}.search-row{grid-template-columns:1fr 1fr}}
 </style>

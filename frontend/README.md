@@ -114,3 +114,22 @@ GET /api/questions/list?type=TEXT&categoryId=7
 npm install
 npm run dev
 ```
+
+## 本次更新：题目 Excel 批量导入导出
+
+管理端题目管理页 `/admin/question-manage` 已接入 EasyExcel 相关接口：
+
+```text
+GET  /api/questions/template      下载题目导入模板
+POST /api/questions/import        上传 Excel 批量导入题目，参数名：file
+GET  /api/questions/export        按当前筛选条件导出题目 Excel
+```
+
+前端改动点：
+
+- `src/api/question.js`：新增 `downloadQuestionTemplate`、`importQuestionExcel`、`exportQuestionExcel`。
+- `src/api/request.js`：新增 `rawResponse` 支持，下载 Excel 时可以拿到 `Content-Disposition` 响应头。
+- `src/utils/download.js`：新增 Blob 下载工具，统一处理中文文件名和 `UTF-8''` 前缀问题。
+- `src/views/QuestionManage.vue`：题目管理页新增“下载模板、Excel导入、导出Excel”按钮和上传逻辑。
+
+导入 Excel 时请选择 `.xls` 或 `.xlsx` 文件。导出 Excel 会自动携带当前页面筛选条件，例如题型、难度、分类和关键词。

@@ -38,3 +38,12 @@ aliyun:
 #关闭异常处理器响应体通用重写，绕过报错代码
 springdoc:
   override-with-generic-response: false
+
+#调用deepseek对话补全参数
+deepseek:
+  api:
+    apikey: wsygrzjjimonannaifkxqsvw50
+    base-uri: https://api.deepseek.com/chat/completions
+    model: deepseek-v4-flash
+    max-tokens: 2048
+    temperature: 0.3

@@ -74,4 +74,33 @@ public class QuestionDTO {
 
     }
 
+    @Data
+    @Schema(description = "AI 生成题目请求对象")
+    public static class AiGenerate {
+
+        @Schema(description = "题目分类ID", example = "5")
+        private Long categoryId;
+
+        @Schema(description = "题目分类名称",example = "Java基础")
+        private String categoryName;
+
+        @Schema(description = "生成题型：CHOICE、JUDGE、TEXT", example = "CHOICE")
+        private String type;
+
+        @Schema(description = "是否多选，仅 CHOICE 选择题有效", example = "false")
+        private Boolean multi;
+
+        @Schema(description = "题目难度：EASY、MEDIUM、HARD", example = "MEDIUM")
+        private String difficulty;
+
+        @Schema(description = "题目分值", example = "5")
+        private Integer score;
+
+        @Schema(description = "生成数量", example = "5")
+        private Integer count;
+
+        @Schema(description = "额外要求", example = "题目适合初学者，不要太偏")
+        private String requirement;
+    }
+
 }

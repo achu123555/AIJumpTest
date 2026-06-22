@@ -20,6 +20,12 @@ service.interceptors.request.use(
 
 service.interceptors.response.use(
   response => {
+    // 文件下载接口需要拿到响应头里的 Content-Disposition，
+    // 所以通过 rawResponse=true 让调用方拿完整 axios response。
+    if (response.config?.rawResponse) {
+      return response
+    }
+
     const result = response.data
 
     // 兼容后端统一返回格式：{ code, message, data, timestamp }

@@ -4,6 +4,7 @@ import com.achu.aijumptest.common.Result;
 import com.achu.aijumptest.dto.QuestionDTO;
 import com.achu.aijumptest.excel.QuestionExportExcel;
 import com.achu.aijumptest.excel.QuestionImportExcel;
+import com.achu.aijumptest.service.AIService;
 import com.achu.aijumptest.service.QuestionService;
 import com.achu.aijumptest.utils.ExcelUtils;
 import com.achu.aijumptest.vo.QuestionPageVO;
@@ -41,9 +42,11 @@ import java.util.List;
 public class QuestionController {
 
     private final QuestionService questionService;
+    private final AIService aiService;
 
-    public QuestionController(QuestionService questionService) {
+    public QuestionController(QuestionService questionService, AIService aiService) {
         this.questionService = questionService;
+        this.aiService = aiService;
     }
 
     @GetMapping("/list")
@@ -95,6 +98,15 @@ public class QuestionController {
         log.info("要查询的热门题目数量为：{}", size);
         List<QuestionPageVO> popularQuestions = questionService.getPopularQuestion(size);
         return Result.success(popularQuestions);
+    }
+
+
+    @PostMapping("/ai/generate")
+    @Operation(summary = "AI 批量生成题目接口", description = "根据题目主题、数量、类型、难度和分类调用 AI 生成题目，返回预览列表。")
+    public Result<List<QuestionPageVO>> aiGenerateQuestion(@RequestBody QuestionDTO.AiGenerate generateDTO) {
+        log.info("开始调用 AI 批量生成题目，参数：{}", generateDTO);
+        List<QuestionPageVO> list = aiService.callAiGenerateQuestion(generateDTO);
+        return Result.success(list);
     }
 
     @GetMapping("/template")
