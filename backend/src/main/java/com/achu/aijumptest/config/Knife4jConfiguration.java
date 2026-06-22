@@ -38,7 +38,7 @@ public class Knife4jConfiguration {
     }
 
     /**
-     *   配置接口分组：轮播图业务分组
+     * 设置接口分组：轮播图业务分组
      */
     @Bean
     public GroupedOpenApi bannerApi() {
@@ -51,7 +51,7 @@ public class Knife4jConfiguration {
     }
 
     /**
-     *   配置接口分组：题目分类业务分组
+     * 设置接口分组：题目分类业务分组
      */
     @Bean
     public GroupedOpenApi categoryApi() {
@@ -64,7 +64,7 @@ public class Knife4jConfiguration {
     }
 
     /**
-     *   配置接口分组：题目业务分组
+     * 设置接口分组：题目业务分组
      */
     @Bean
     public GroupedOpenApi questionApi() {
@@ -75,4 +75,18 @@ public class Knife4jConfiguration {
                 .pathsToMatch("/api/questions/**")
                 .build();
     }
+
+    /**
+     * 设置接口分组：试卷业务分组
+     */
+    @Bean
+    public GroupedOpenApi paperApi() {
+        return GroupedOpenApi.builder()
+                //接口名
+                .group("试卷管理接口")
+                //通过路由来匹配
+                .pathsToMatch("/api/papers/**")
+                .build();
+    }
+
 }
