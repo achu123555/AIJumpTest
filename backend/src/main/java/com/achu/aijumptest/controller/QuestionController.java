@@ -7,7 +7,7 @@ import com.achu.aijumptest.excel.QuestionImportExcel;
 import com.achu.aijumptest.service.AIService;
 import com.achu.aijumptest.service.QuestionService;
 import com.achu.aijumptest.utils.ExcelUtils;
-import com.achu.aijumptest.vo.QuestionPageVO;
+import com.achu.aijumptest.vo.QuestionDetailVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -51,9 +51,9 @@ public class QuestionController {
 
     @GetMapping("/list")
     @Operation(summary = "分页查询题目接口", description = "此接口接收的参数可有可无，结合了条件查询与分页查询功能。")
-    public Result<Page<QuestionPageVO>> list(@ParameterObject QuestionDTO.Query queryDTO) {
+    public Result<Page<QuestionDetailVO>> list(@ParameterObject QuestionDTO.Query queryDTO) {
         // 1. 执行查询
-        Page<QuestionPageVO> listByPage = questionService.queryByPageEnhance(queryDTO);
+        Page<QuestionDetailVO> listByPage = questionService.queryByPageEnhance(queryDTO);
 
         // 2. 返回结果
         log.info("分页查询题目成功！查询结果为：{}", listByPage.getRecords());
@@ -62,9 +62,9 @@ public class QuestionController {
 
     @GetMapping("/{id}")
     @Operation(summary = "查看题目详情接口", description = "此接口可以查看题目及详情信息，包括答案和选项。")
-    public Result<QuestionPageVO> getById(@PathVariable("id") @Parameter(description = "题目id") Long id) {
+    public Result<QuestionDetailVO> getById(@PathVariable("id") @Parameter(description = "题目id") Long id) {
         log.info("开始根据 id 查询题目，对应的题目 id 为：{}", id);
-        QuestionPageVO questionVo = questionService.getById(id);
+        QuestionDetailVO questionVo = questionService.getById(id);
         return Result.success(questionVo);
     }
 
@@ -94,18 +94,18 @@ public class QuestionController {
 
     @GetMapping("/popular")
     @Operation(summary = "查询热门题目接口", description = "根据传入的 size 参数，查询 size 个热门题目。")
-    public Result<List<QuestionPageVO>> getPopularQuestion(@RequestParam("size") @Parameter(description = "查询数量") Integer size) {
+    public Result<List<QuestionDetailVO>> getPopularQuestion(@RequestParam("size") @Parameter(description = "查询数量") Integer size) {
         log.info("要查询的热门题目数量为：{}", size);
-        List<QuestionPageVO> popularQuestions = questionService.getPopularQuestion(size);
+        List<QuestionDetailVO> popularQuestions = questionService.getPopularQuestion(size);
         return Result.success(popularQuestions);
     }
 
 
     @PostMapping("/ai/generate")
     @Operation(summary = "AI 批量生成题目接口", description = "根据题目主题、数量、类型、难度和分类调用 AI 生成题目，返回预览列表。")
-    public Result<List<QuestionPageVO>> aiGenerateQuestion(@RequestBody QuestionDTO.AiGenerate generateDTO) {
+    public Result<List<QuestionDetailVO>> aiGenerateQuestion(@RequestBody QuestionDTO.AiGenerate generateDTO) {
         log.info("开始调用 AI 批量生成题目，参数：{}", generateDTO);
-        List<QuestionPageVO> list = aiService.callAiGenerateQuestion(generateDTO);
+        List<QuestionDetailVO> list = aiService.callAiGenerateQuestion(generateDTO);
         return Result.success(list);
     }
 

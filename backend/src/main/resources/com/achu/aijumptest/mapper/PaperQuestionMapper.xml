@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.achu.aijumptest.mapper.PaperQuestionMapper">
+    
+    <resultMap id="questions" type="com.achu.aijumptest.vo.QuestionDetailVO">
+        <id column="id" property="id"/>
+        <association property="questionAnswer" javaType="com.achu.aijumptest.entity.QuestionAnswer">
+            <id column="qa_id" property="id"/>
+            <result column="qa_question_id" property="questionId"/>
+            <result column="qa_answer" property="answer"/>
+            <result column="qa_keywords" property="keywords"/>
+            <result column="qa_create_time" property="createTime"/>
+            <result column="qa_update_time" property="updateTime"/>
+        </association>
+        <collection property="questionChoiceList" javaType="java.util.List"
+                    ofType="com.achu.aijumptest.entity.QuestionChoice" notNullColumn="qc_id">
+            <id column="qc_id" property="id"/>
+            <result column="qc_question_id" property="questionId"/>
+            <result column="qc_content" property="content"/>
+            <result column="qc_is_correct" property="isCorrect"/>
+            <result column="qc_sort" property="sort"/>
+        </collection>
+    </resultMap>
+    
+    <select id="selectQuestions" resultMap="questions">
+        SELECT
+            q.*,
+            qa.id qa_id,
+            qa.question_id qa_question_id,
+            qa.answer qa_answer,
+            qa.keywords qa_keywords,
+            qa.create_time qa_create_time,
+            qa.update_time qa_update_time,
+            qc.id qc_id,
+            qc.question_id qc_question_id,
+            qc.content qc_content,
+            qc.is_correct qc_is_correct,
+            qc.sort qc_sort,
+            qc.create_time qc_create_time,
+            qc.update_time qc_update_time,
+            pq.score real_score
+        FROM
+            paper_question pq
+                INNER JOIN questions q ON pq.question_id = q.id
+                INNER JOIN question_answer qa ON q.id = qa.question_id
+                LEFT JOIN question_choices qc ON q.id = qc.question_id AND qc.is_deleted = 0
+        WHERE
+            pq.paper_id = #{id} AND  pq.is_deleted = 0 AND q.is_deleted = 0 AND qa.is_deleted = 0
+        ORDER BY q.id,qc.sort;
+    </select>
+
+
+</mapper>

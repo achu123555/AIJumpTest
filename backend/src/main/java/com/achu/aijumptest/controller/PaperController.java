@@ -3,16 +3,14 @@ package com.achu.aijumptest.controller;
 import com.achu.aijumptest.common.Result;
 import com.achu.aijumptest.entity.Paper;
 import com.achu.aijumptest.service.PaperService;
+import com.achu.aijumptest.vo.PaperVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -44,5 +42,14 @@ public class PaperController {
                         .eq(ObjectUtils.isNotEmpty(status), Paper::getStatus, status)
         );
         return Result.success(papers);
+    }
+
+    @GetMapping("/{id}")
+    @Operation(summary = "试卷详情接口",description = "查询试卷的详情信息包括题目及答案选项")
+    public Result<PaperVO.Detail> getById(@Parameter(description = "试卷id") @PathVariable("id") Long id){
+
+        PaperVO.Detail detailPaper = paperService.getDetailPaper(id);
+
+        return Result.success(detailPaper);
     }
 }

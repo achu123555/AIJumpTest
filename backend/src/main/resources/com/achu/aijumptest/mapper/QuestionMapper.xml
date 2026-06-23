@@ -4,10 +4,10 @@
 <mapper namespace="com.achu.aijumptest.mapper.QuestionMapper">
 
     <!--定义一个结果映射规则,id为后面的sql要引用这个规则的名字,type为映射最终要封装的类型-->
-    <resultMap id="questionMap" type="com.achu.aijumptest.vo.QuestionPageVO">
-        <!--主键映射：把查询结果中的 id 列，赋值给 QuestionPageVO 对象的 id 属性-->
+    <resultMap id="questionMap" type="com.achu.aijumptest.vo.QuestionDetailVO">
+        <!--主键映射：把查询结果中的 id 列，赋值给 QuestionDetailVO 对象的 id 属性-->
         <id column="id" property="id"/>
-        <!--一对一 / 多对一对象映射 给 QuestionPageVO 对象里面的 answer 属性赋值。-->
+        <!--一对一 / 多对一对象映射 给 QuestionDetailVO 对象里面的 answer 属性赋值。-->
         <association property="questionAnswer" javaType="com.achu.aijumptest.entity.QuestionAnswer">
             <id column="qa_id" property="id"/>
             <result column="qa_answer" property="answer"/>

@@ -6,10 +6,11 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 import lombok.EqualsAndHashCode;
 
+import java.math.BigDecimal;
 import java.util.List;
 
 /**
- * projectName: com.achu.aijumptest.vo.QuestionPageVO
+ * projectName: com.achu.aijumptest.vo.QuestionDetailVO
  *
  * @author: achu_code
  * description: 查询的题目结果
@@ -17,7 +18,7 @@ import java.util.List;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class QuestionPageVO extends BaseVO{
+public class QuestionDetailVO extends BaseVO{
 
     @Schema(description = "题目", example = "以下关于Java面向对象编程说法正确的是？")
     private String title;
@@ -37,4 +38,6 @@ public class QuestionPageVO extends BaseVO{
     private QuestionAnswer questionAnswer;
     @Schema(description = "题目选项列表")
     private List<QuestionChoice> questionChoiceList;
+    @Schema(description = "试卷题目中间表中的题目真实分数,没有时才用题目默认分数")
+    private BigDecimal realScore;
 }

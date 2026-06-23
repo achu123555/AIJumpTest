@@ -5,16 +5,14 @@ import com.achu.aijumptest.enums.QuestionType;
 import com.achu.aijumptest.exception.BusinessException;
 import com.achu.aijumptest.properties.DeepSeekProperties;
 import com.achu.aijumptest.service.AIService;
-import com.achu.aijumptest.vo.QuestionPageVO;
+import com.achu.aijumptest.vo.QuestionDetailVO;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.web.reactive.function.client.WebClientResponseException;
 import reactor.core.publisher.Mono;
 
 import java.time.Duration;
@@ -199,7 +197,7 @@ public class AIServiceImpl implements AIService {
     }
 
     @Override
-    public List<QuestionPageVO> callAiGenerateQuestion(QuestionDTO.AiGenerate generateDTO) {
+    public List<QuestionDetailVO> callAiGenerateQuestion(QuestionDTO.AiGenerate generateDTO) {
 
         //1.封装官方文档要求的请求JSON
         String prompt = buildAiQuestionPrompt(generateDTO);
@@ -316,7 +314,7 @@ public class AIServiceImpl implements AIService {
         //5 将截取出的json字符串反序列化为VO
         try {
             // Fastjson2 会根据字段名自动填充：title, type, difficulty, score, questionChoiceList
-            return JSONArray.parseArray(content, QuestionPageVO.class);
+            return JSONArray.parseArray(content, QuestionDetailVO.class);
 
         }catch (Exception e){
             log.error("【AI服务】解析大模型生成的题目JSON时发生格式错误！原始文本: {}", content, e);

@@ -2,7 +2,7 @@ package com.achu.aijumptest.mapper;
 
 import com.achu.aijumptest.dto.QuestionDTO;
 import com.achu.aijumptest.entity.Question;
-import com.achu.aijumptest.vo.QuestionPageVO;
+import com.achu.aijumptest.vo.QuestionDetailVO;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
 import com.baomidou.mybatisplus.core.metadata.IPage;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
@@ -38,8 +38,8 @@ public interface QuestionMapper extends BaseMapper<Question> {
      * 形参说明：第一个参数必须是 Page对象，MP 自动识别
      * @return 分页对象
      */
-    IPage<QuestionPageVO> selectByPage(
-            @Param("page") Page<QuestionPageVO> page,
+    IPage<QuestionDetailVO> selectByPage(
+            @Param("page") Page<QuestionDetailVO> page,
             @Param("query") QuestionDTO.Query queryDTO);
 
 

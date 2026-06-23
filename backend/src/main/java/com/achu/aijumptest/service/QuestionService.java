@@ -4,7 +4,7 @@ import com.achu.aijumptest.dto.QuestionDTO;
 import com.achu.aijumptest.entity.Question;
 import com.achu.aijumptest.excel.QuestionExportExcel;
 import com.achu.aijumptest.excel.QuestionImportExcel;
-import com.achu.aijumptest.vo.QuestionPageVO;
+import com.achu.aijumptest.vo.QuestionDetailVO;
 import com.baomidou.mybatisplus.extension.plugins.pagination.Page;
 import com.baomidou.mybatisplus.extension.service.IService;
 import org.springframework.web.multipart.MultipartFile;
@@ -25,7 +25,7 @@ public interface QuestionService extends IService<Question> {
      * @param queryDTO 分页参数和查询条件
      * @return 分页查询结果
      */
-    Page<QuestionPageVO> queryByPage(QuestionDTO.Query queryDTO);
+    Page<QuestionDetailVO> queryByPage(QuestionDTO.Query queryDTO);
 
     /**
      * 增强分页查询：Java 层面操作，把数据拉到内存中处理 1+1+1
@@ -33,7 +33,7 @@ public interface QuestionService extends IService<Question> {
      * @param queryDTO 分页参数和查询条件
      * @return 分页查询结果
      */
-    Page<QuestionPageVO> queryByPageEnhance(QuestionDTO.Query queryDTO);
+    Page<QuestionDetailVO> queryByPageEnhance(QuestionDTO.Query queryDTO);
 
     /**
      * 保存题目
@@ -48,7 +48,7 @@ public interface QuestionService extends IService<Question> {
      * @param id 题目 id
      * @return 题目展示对象
      */
-    QuestionPageVO getById(Long id);
+    QuestionDetailVO getById(Long id);
 
     /**
      * 更新题目的详情信息接口，包括答案和选项
@@ -63,7 +63,7 @@ public interface QuestionService extends IService<Question> {
      * @param size 查找的热门题目数量
      * @return 完整题目列表
      */
-    List<QuestionPageVO> getPopularQuestion(Integer size);
+    List<QuestionDetailVO> getPopularQuestion(Integer size);
 
     /**
      * 根据题目 id 删除题目及其选项与答案

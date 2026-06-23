@@ -19,7 +19,7 @@ import com.achu.aijumptest.mapper.QuestionMapper;
 import com.achu.aijumptest.service.QuestionService;
 import com.achu.aijumptest.utils.ExcelUtils;
 import com.achu.aijumptest.utils.RedisUtils;
-import com.achu.aijumptest.vo.QuestionPageVO;
+import com.achu.aijumptest.vo.QuestionDetailVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
@@ -59,14 +59,14 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     private final PaperQuestionMapper paperQuestionMapper;
 
     @Override
-    public Page<QuestionPageVO> queryByPage(QuestionDTO.Query queryDTO) {
-        Page<QuestionPageVO> page = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
+    public Page<QuestionDetailVO> queryByPage(QuestionDTO.Query queryDTO) {
+        Page<QuestionDetailVO> page = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
         questionMapper.selectByPage(page, queryDTO);
         return page;
     }
 
     @Override
-    public Page<QuestionPageVO> queryByPageEnhance(QuestionDTO.Query queryDTO) {
+    public Page<QuestionDetailVO> queryByPageEnhance(QuestionDTO.Query queryDTO) {
         // 1. 分页 + 条件查询所有题目
         Page<Question> pageBean = new Page<>(queryDTO.getCurrent(), queryDTO.getSize());
         LambdaQueryWrapper<Question> queryWrapper = buildQuestionQueryWrapper(queryDTO);
@@ -75,8 +75,8 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         page(pageBean, queryWrapper);
 
         // 2. entity 转成 VO
-        List<QuestionPageVO> voList = BeanUtil.copyToList(pageBean.getRecords(), QuestionPageVO.class);
-        Page<QuestionPageVO> resultPage = new Page<>(pageBean.getCurrent(), pageBean.getSize(), pageBean.getTotal());
+        List<QuestionDetailVO> voList = BeanUtil.copyToList(pageBean.getRecords(), QuestionDetailVO.class);
+        Page<QuestionDetailVO> resultPage = new Page<>(pageBean.getCurrent(), pageBean.getSize(), pageBean.getTotal());
         resultPage.setRecords(voList);
 
         // 3. 批量填充答案和选项字段
@@ -139,7 +139,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     }
 
     @Override
-    public QuestionPageVO getById(Long id) {
+    public QuestionDetailVO getById(Long id) {
         // 1. 查出题目
         Question question = baseMapper.selectById(id);
         if (ObjectUtils.isNull(question)) {
@@ -147,27 +147,27 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
 
         // 2. 拷贝题目，题目必有答案，直接查出答案填充
-        QuestionPageVO questionPageVO = BeanUtil.copyProperties(question, QuestionPageVO.class);
+        QuestionDetailVO questionDetailVO = BeanUtil.copyProperties(question, QuestionDetailVO.class);
         QuestionAnswer answer = questionAnswerMapper.selectOne(
                 new LambdaQueryWrapper<QuestionAnswer>()
-                        .eq(QuestionAnswer::getQuestionId, questionPageVO.getId())
+                        .eq(QuestionAnswer::getQuestionId, questionDetailVO.getId())
                         .last("LIMIT 1")
         );
-        questionPageVO.setQuestionAnswer(answer);
+        questionDetailVO.setQuestionAnswer(answer);
 
         // 3. 只有选择题有选项
-        if (QuestionType.CHOICE.name().equals(questionPageVO.getType())) {
+        if (QuestionType.CHOICE.name().equals(questionDetailVO.getType())) {
             List<QuestionChoice> choices = questionChoiceMapper.selectList(
                     new LambdaQueryWrapper<QuestionChoice>()
-                            .eq(QuestionChoice::getQuestionId, questionPageVO.getId())
+                            .eq(QuestionChoice::getQuestionId, questionDetailVO.getId())
                             .orderByAsc(QuestionChoice::getSort)
             );
-            questionPageVO.setQuestionChoiceList(choices);
+            questionDetailVO.setQuestionChoiceList(choices);
         }
 
         // 4. 记录题目热度 ZINCRBY aijumptext:question:popular 1 题目ID
         redisUtils.zIncrementScore(CacheConstants.POPULAR_QUESTIONS_KEY, id, 1D);
-        return questionPageVO;
+        return questionDetailVO;
     }
 
     @Transactional(rollbackFor = Exception.class)
@@ -228,7 +228,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
     }
 
     @Override
-    public List<QuestionPageVO> getPopularQuestion(Integer size) {
+    public List<QuestionDetailVO> getPopularQuestion(Integer size) {
         // 1. 从 redis 中查出 size 条分值最高的 id
         Set<Object> idsSet = redisUtils.zReverseRange(
                 CacheConstants.POPULAR_QUESTIONS_KEY,
@@ -243,7 +243,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                             .orderByDesc(Question::getCreateTime)
                             .last("LIMIT " + size)
             );
-            List<QuestionPageVO> voList = BeanUtil.copyToList(questions, QuestionPageVO.class);
+            List<QuestionDetailVO> voList = BeanUtil.copyToList(questions, QuestionDetailVO.class);
             fillAnswerAndChoice(voList);
             return voList;
         }
@@ -264,7 +264,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                 sortQuestions.add(q);
             }
         }
-        List<QuestionPageVO> popularQuestions = new ArrayList<>(BeanUtil.copyToList(sortQuestions, QuestionPageVO.class));
+        List<QuestionDetailVO> popularQuestions = new ArrayList<>(BeanUtil.copyToList(sortQuestions, QuestionDetailVO.class));
 
         // 5. Redis 热门题不足 size 条时，再从数据库补齐最新题目
         int diff = size - idsSet.size();
@@ -275,7 +275,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
                             .orderByDesc(Question::getCreateTime)
                             .last("LIMIT " + diff)
             );
-            popularQuestions.addAll(BeanUtil.copyToList(questions, QuestionPageVO.class));
+            popularQuestions.addAll(BeanUtil.copyToList(questions, QuestionDetailVO.class));
         }
 
         // 6. 统一填充答案和选项
@@ -370,7 +370,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
         }
 
         // 2. 转 VO 后复用已有方法批量填充答案和选项
-        List<QuestionPageVO> voList = BeanUtil.copyToList(questionList, QuestionPageVO.class);
+        List<QuestionDetailVO> voList = BeanUtil.copyToList(questionList, QuestionDetailVO.class);
         fillAnswerAndChoice(voList);
 
         // 3. 把 VO 转成扁平 Excel 行对象
@@ -467,7 +467,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
      * @param vo 题目展示 VO
      * @return Excel 导出对象
      */
-    private QuestionExportExcel convertToExportExcel(QuestionPageVO vo) {
+    private QuestionExportExcel convertToExportExcel(QuestionDetailVO vo) {
         QuestionExportExcel excel = new QuestionExportExcel();
         excel.setId(vo.getId());
         excel.setTitle(vo.getTitle());
@@ -540,7 +540,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
      *
      * @param records 题目 VO 集合
      */
-    private void fillAnswerAndChoice(List<QuestionPageVO> records) {
+    private void fillAnswerAndChoice(List<QuestionDetailVO> records) {
         // 1. 判空
         if (records == null || records.isEmpty()) {
             log.debug("问题集合为空");
@@ -549,7 +549,7 @@ public class QuestionServiceImpl extends ServiceImpl<QuestionMapper, Question> i
 
         // 2. 根据题目 id 查询所有答案和选项
         List<Long> ids = records.stream()
-                .map(QuestionPageVO::getId)
+                .map(QuestionDetailVO::getId)
                 .toList();
         List<QuestionAnswer> questionAnswers = questionAnswerMapper.selectList(
                 new LambdaQueryWrapper<QuestionAnswer>()

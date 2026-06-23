@@ -1,7 +1,7 @@
 package com.achu.aijumptest.service;
 
 import com.achu.aijumptest.dto.QuestionDTO;
-import com.achu.aijumptest.vo.QuestionPageVO;
+import com.achu.aijumptest.vo.QuestionDetailVO;
 
 import java.util.List;
 
@@ -31,5 +31,5 @@ public interface AIService {
      * @param generateDTO
      * @return
      */
-    List<QuestionPageVO> callAiGenerateQuestion(QuestionDTO.AiGenerate generateDTO);
+    List<QuestionDetailVO> callAiGenerateQuestion(QuestionDTO.AiGenerate generateDTO);
 }
