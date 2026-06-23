@@ -14,7 +14,7 @@ import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class QuestionAnswer extends BaseEntity{
+public class QuestionAnswer extends BaseEntity<Long>{
 
     @Schema(description = "关联的题目id")
     private Long questionId;

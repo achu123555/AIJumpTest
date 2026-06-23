@@ -18,7 +18,7 @@ import java.util.List;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("categories")
-public class Category extends BaseEntity{
+public class Category extends BaseEntity<Long>{
 
     @Schema(description = "分类名")
     private String name;

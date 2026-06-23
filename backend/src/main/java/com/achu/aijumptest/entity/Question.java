@@ -18,7 +18,7 @@ import java.math.BigDecimal;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("questions")
-public class Question extends BaseEntity{
+public class Question extends BaseEntity<Long>{
 
     @Schema(description = "题目", example = "以下关于Java面向对象编程说法正确的是？")
     private String title;

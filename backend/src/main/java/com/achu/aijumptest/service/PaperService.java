@@ -1,5 +1,6 @@
 package com.achu.aijumptest.service;
 
+import com.achu.aijumptest.dto.PaperDTO;
 import com.achu.aijumptest.entity.Paper;
 import com.achu.aijumptest.vo.PaperVO;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -19,4 +20,12 @@ public interface PaperService extends IService<Paper> {
      * @return 试卷详情对象
      */
     PaperVO.Detail getDetailPaper(Long id);
+
+    /**
+     * 创建并保存试卷
+     *
+     * @param save 要保存的试卷参数
+     * @return 组装后保存的试卷
+     */
+    Paper createPaper(PaperDTO.Save save);
 }

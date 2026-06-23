@@ -13,7 +13,7 @@ import lombok.EqualsAndHashCode;
 
 @EqualsAndHashCode(callSuper = true)
 @Data
-public class PaperQuestion extends BaseEntity{
+public class PaperQuestion extends BaseEntity<Integer>{
 
     @Schema(description = "试卷id")
     private Integer paperId;

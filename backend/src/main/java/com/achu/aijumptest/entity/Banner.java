@@ -15,7 +15,7 @@ import lombok.EqualsAndHashCode;
 @EqualsAndHashCode(callSuper = true)
 @Data
 @TableName("banners")
-public class Banner extends BaseEntity{
+public class Banner extends BaseEntity<Long>{
     @Schema(description = "轮播图标题")
     private String title;
     @Schema(description = "轮播图描述")

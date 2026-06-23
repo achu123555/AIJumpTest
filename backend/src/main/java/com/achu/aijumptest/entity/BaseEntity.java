@@ -17,11 +17,11 @@ import java.time.LocalDateTime;
  */
 
 @Data
-public class BaseEntity implements Serializable {
+public class BaseEntity<T> implements Serializable {
 
     @Schema(description = "主键")
     @TableId(type = IdType.AUTO) //mp自增类型主键
-    private Long id;
+    private T id;
 
     @Schema(description = "创建时间")
     @JsonFormat(pattern = "yyyy-MM-dd HH:mm:ss",timezone = "GMT+8") //格式化时间和调整时区

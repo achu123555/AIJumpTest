@@ -1,6 +1,7 @@
 package com.achu.aijumptest.controller;
 
 import com.achu.aijumptest.common.Result;
+import com.achu.aijumptest.dto.PaperDTO;
 import com.achu.aijumptest.entity.Paper;
 import com.achu.aijumptest.service.PaperService;
 import com.achu.aijumptest.vo.PaperVO;
@@ -47,9 +48,18 @@ public class PaperController {
     @GetMapping("/{id}")
     @Operation(summary = "试卷详情接口",description = "查询试卷的详情信息包括题目及答案选项")
     public Result<PaperVO.Detail> getById(@Parameter(description = "试卷id") @PathVariable("id") Long id){
-
+        log.info("要查询试卷详情的试卷id为:{}",id);
         PaperVO.Detail detailPaper = paperService.getDetailPaper(id);
 
         return Result.success(detailPaper);
+    }
+
+    @PostMapping
+    @Operation(summary = "创建试卷接口")
+    public Result<Paper> createPaper(@RequestBody PaperDTO.Save save){
+        log.info("开始创建试卷,内容为：{}",save);
+        Paper paper = paperService.createPaper(save);
+
+        return Result.success(paper);
     }
 }
