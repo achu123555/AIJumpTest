@@ -50,4 +50,10 @@ public interface PaperService extends IService<Paper> {
      * @param status 试卷目标状态
      */
     void switchStatus(Integer id, String status);
+
+    /**
+     * 删除试卷
+     * @param id 试卷id
+     */
+    void remove(Integer id);
 }

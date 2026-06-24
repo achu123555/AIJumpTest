@@ -3,12 +3,13 @@ import Home from '../views/Home.vue'
 import BannerManage from '../views/BannerManage.vue'
 import CategoryManage from '../views/CategoryManage.vue'
 import QuestionManage from '../views/QuestionManage.vue'
+import PaperManage from '../views/PaperManage.vue'
+import PaperEdit from '../views/PaperEdit.vue'
 import StudentQuestionList from '../views/StudentQuestionList.vue'
 import StudentQuestionDetail from '../views/StudentQuestionDetail.vue'
 import Placeholder from '../views/Placeholder.vue'
 
 const placeholderRoutes = [
-  { path: 'paper-manage', title: '试卷管理' },
   { path: 'score-manage', title: '成绩管理' },
   { path: 'notice-manage', title: '公告管理' },
   { path: 'video-manage', title: '视频管理' },
@@ -26,6 +27,9 @@ const routes = [
     children: [
       { path: 'question-manage', name: 'QuestionManage', component: QuestionManage, meta: { title: '题目管理' } },
       { path: 'category-manage', name: 'CategoryManage', component: CategoryManage, meta: { title: '类别管理' } },
+      { path: 'paper-manage', name: 'PaperManage', component: PaperManage, meta: { title: '试卷管理' } },
+      { path: 'paper-create', name: 'PaperCreate', component: PaperEdit, meta: { title: '创建试卷' } },
+      { path: 'paper-edit/:id', name: 'PaperEdit', component: PaperEdit, meta: { title: '编辑试卷' } },
       { path: 'banner-manage', name: 'BannerManage', component: BannerManage, meta: { title: '轮播图管理' } },
       ...placeholderRoutes.map(item => ({ path: item.path, name: item.path, component: Placeholder, meta: { title: item.title } }))
     ]

@@ -2,16 +2,17 @@ package com.achu.aijumptest.service.impl;
 
 import cn.hutool.core.bean.BeanUtil;
 import com.achu.aijumptest.dto.PaperDTO;
+import com.achu.aijumptest.entity.ExamRecord;
 import com.achu.aijumptest.entity.Paper;
 import com.achu.aijumptest.entity.PaperQuestion;
 import com.achu.aijumptest.exception.BusinessException;
+import com.achu.aijumptest.mapper.ExamRecordMapper;
 import com.achu.aijumptest.mapper.PaperMapper;
 import com.achu.aijumptest.mapper.PaperQuestionMapper;
 import com.achu.aijumptest.service.PaperService;
 import com.achu.aijumptest.vo.PaperVO;
 import com.achu.aijumptest.vo.QuestionDetailVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -37,6 +38,7 @@ import java.util.List;
 public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements PaperService {
 
     private final PaperQuestionMapper paperQuestionMapper;
+    private final ExamRecordMapper examRecordMapper;
 
     @Override
     public PaperVO.Detail getDetailPaper(Integer id) {
@@ -193,6 +195,34 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
         //2.切换试卷状态
         paper.setStatus(status);
         baseMapper.updateById(paper);
+    }
+
+    @Transactional
+    @Override
+    public void remove(Integer id) {
+        //1.校验(X发布中的试卷不可删除 X已关联考试记录表的考卷不可删除)
+        //1.1 校验试卷是否存在和是否处于发布状态
+        Paper paper = baseMapper.selectById(id);
+        if (paper == null) {
+            throw new BusinessException("该试卷不存在！无法执行删除。");
+        }
+        if ("PUBLISHED".equals(paper.getStatus())) {
+            throw new BusinessException("该试卷正处于发布状态，请先下线后再删除！");
+        }
+        //1.2 校验试卷是否关联了考试记录
+        boolean exists = examRecordMapper.exists(
+                new LambdaQueryWrapper<ExamRecord>()
+                        .eq(ExamRecord::getPaperId, id)
+        );
+        if(exists){
+            throw new BusinessException("该考卷已经产生了考生考试记录，为保证数据完整性，不可删除！");
+        }
+        //2.删除考卷及关联表
+        paperQuestionMapper.delete(
+                new LambdaQueryWrapper<PaperQuestion>()
+                        .eq(PaperQuestion::getPaperId,id)
+        );
+        baseMapper.deleteById(id);
     }
 
     private List<PaperQuestion> ToPaperQuestions(PaperDTO.Create update, Paper paper) {

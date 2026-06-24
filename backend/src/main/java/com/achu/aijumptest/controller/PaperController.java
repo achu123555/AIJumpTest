@@ -92,4 +92,14 @@ public class PaperController {
         paperService.switchStatus(id,status);
         return Result.success();
     }
+
+    @DeleteMapping("/{id}")
+    @Operation(summary = "删除试卷接口")
+    public Result<Void> delete(
+            @Parameter(description = "试卷id") @PathVariable("id") Integer id
+    ){
+        log.info("开始删除试卷,要删除的试卷id为：{}",id);
+        paperService.remove(id);
+        return Result.success();
+    }
 }
