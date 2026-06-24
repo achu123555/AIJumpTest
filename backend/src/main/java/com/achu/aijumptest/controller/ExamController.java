@@ -47,9 +47,9 @@ public class ExamController {
     public Result<ExamRecordVO.Detail> getDetailRecordById(
             @Parameter(description = "考试记录id") @PathVariable("id") Integer id
     ){
-
+        log.info("要查询详情的考试记录id为：{}",id);
         ExamRecordVO.Detail detailRecord = examService.getDetailRecordById(id);
 
-        return null;
+        return Result.success(detailRecord);
     }
 }

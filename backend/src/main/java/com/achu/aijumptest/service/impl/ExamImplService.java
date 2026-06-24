@@ -1,20 +1,28 @@
 package com.achu.aijumptest.service.impl;
 
+import cn.hutool.core.bean.BeanUtil;
 import com.achu.aijumptest.dto.ExamRecordDTO;
+import com.achu.aijumptest.entity.AnswerRecord;
 import com.achu.aijumptest.entity.ExamRecord;
 import com.achu.aijumptest.entity.Paper;
 import com.achu.aijumptest.exception.BusinessException;
+import com.achu.aijumptest.mapper.AnswerRecordMapper;
 import com.achu.aijumptest.mapper.ExamRecordMapper;
 import com.achu.aijumptest.mapper.PaperMapper;
 import com.achu.aijumptest.service.ExamService;
+import com.achu.aijumptest.service.PaperService;
 import com.achu.aijumptest.vo.ExamRecordVO;
+import com.achu.aijumptest.vo.PaperVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * projectName: com.achu.aijumptest.service.impl.ExamImplService
@@ -28,6 +36,8 @@ import java.time.LocalDateTime;
 public class ExamImplService extends ServiceImpl<ExamRecordMapper, ExamRecord> implements ExamService {
 
     private final PaperMapper paperMapper;
+    private final AnswerRecordMapper answerRecordMapper;
+    private final PaperService paperService;
 
     @Override
     public ExamRecord startExam(ExamRecordDTO.startExam startExam) {
@@ -78,13 +88,26 @@ public class ExamImplService extends ServiceImpl<ExamRecordMapper, ExamRecord> i
 
     @Override
     public ExamRecordVO.Detail getDetailRecordById(Integer id) {
-        //1.校验
+        //1.查询校验考试记录是否存在
         ExamRecord examRecord = baseMapper.selectById(id);
         if(examRecord == null){
             throw new BusinessException("该考试记录不存在！");
         }
-
-
-        return null;
+        //2.查询校验作答记录是否存在
+        List<AnswerRecord> answerRecords = answerRecordMapper.selectList(
+                new LambdaQueryWrapper<AnswerRecord>()
+                        .eq(AnswerRecord::getExamRecordId, examRecord.getId())
+        );
+        if(ObjectUtils.isEmpty(answerRecords)){
+            //作答记录不存在,返回空列表
+            answerRecords = new ArrayList<>();
+        }
+        //3.查询试卷+题目(内部已有校验)
+        PaperVO.Detail detailPaper = paperService.getDetailPaper(examRecord.getPaperId());
+        //4.填充数据,返回
+        ExamRecordVO.Detail detailRecord = BeanUtil.copyProperties(examRecord, ExamRecordVO.Detail.class);
+        detailRecord.setAnswerRecords(answerRecords);
+        detailRecord.setDetailPaper(detailPaper);
+        return detailRecord;
     }
 }
