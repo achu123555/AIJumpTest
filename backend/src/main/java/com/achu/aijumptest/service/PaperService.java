@@ -43,4 +43,11 @@ public interface PaperService extends IService<Paper> {
      * @return 更新后的试卷
      */
     Paper update(Integer id, PaperDTO.Create update);
+
+    /**
+     * 切换试卷状态
+     * @param id 试卷id
+     * @param status 试卷目标状态
+     */
+    void switchStatus(Integer id, String status);
 }

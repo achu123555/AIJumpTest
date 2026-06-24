@@ -11,6 +11,7 @@ import com.achu.aijumptest.service.PaperService;
 import com.achu.aijumptest.vo.PaperVO;
 import com.achu.aijumptest.vo.QuestionDetailVO;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -162,6 +163,36 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
         }
 
         return paper;
+    }
+
+    @Override
+    public void switchStatus(Integer id, String status) {
+
+        //1.校验：发布状态的试卷不能没有题目(x)
+
+        Paper paper = baseMapper.selectById(id);
+        if(paper == null){
+            throw new BusinessException("该试卷不存在！修改状态失败");
+        }
+        if(status.equals(paper.getStatus())){
+            return;
+        }
+        if(!"DRAFT".equals(status) && !"PUBLISHED".equals(status) && !"EXPIRED".equals(status)){
+            throw new BusinessException("非法状态参数！");
+        }
+        if("PUBLISHED".equals(status)){
+            boolean exists = paperQuestionMapper.exists(
+                    new LambdaQueryWrapper<PaperQuestion>()
+                            .eq(PaperQuestion::getPaperId, id)
+            );
+            if(!exists){
+                throw new BusinessException("试卷没有题目,不可切换成发布状态！");
+            }
+        }
+
+        //2.切换试卷状态
+        paper.setStatus(status);
+        baseMapper.updateById(paper);
     }
 
     private List<PaperQuestion> ToPaperQuestions(PaperDTO.Create update, Paper paper) {

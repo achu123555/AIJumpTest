@@ -81,4 +81,15 @@ public class PaperController {
         Paper paper = paperService.update(id,update);
         return Result.success(paper);
     }
+
+    @PutMapping("/status/{id}")
+    @Operation(summary = "切换试卷状态接口",description = "传入id和status参数来切换试卷的状态，没有题目不可发布！")
+    public Result<Void> switchStatus(
+            @Parameter(description = "试卷id") @PathVariable("id") Integer id,
+            @RequestParam("status") String status
+    ){
+        log.info("开始切换试卷状态,要切换的试卷id和状态为:{}-{}",id,status);
+        paperService.switchStatus(id,status);
+        return Result.success();
+    }
 }
