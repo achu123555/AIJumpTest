@@ -18,6 +18,10 @@
           <el-icon><House /></el-icon>
           <span>学生端首页</span>
         </el-menu-item>
+        <el-menu-item index="/exam/list">
+          <el-icon><EditPen /></el-icon>
+          <span>开始考试</span>
+        </el-menu-item>
         <el-menu-item index="/admin/question-manage">
           <el-icon><Document /></el-icon>
           <span>题目管理</span>
@@ -33,6 +37,10 @@
         <el-menu-item index="/admin/score-manage">
           <el-icon><Trophy /></el-icon>
           <span>成绩管理</span>
+        </el-menu-item>
+        <el-menu-item index="/admin/ranking-manage">
+          <el-icon><Medal /></el-icon>
+          <span>排行榜管理</span>
         </el-menu-item>
         <el-menu-item index="/admin/banner-manage">
           <el-icon><Picture /></el-icon>
@@ -80,9 +88,11 @@ import {
   Bell,
   Collection,
   Document,
+  EditPen,
   Folder,
   Grid,
   House,
+  Medal,
   Picture,
   Tickets,
   Trophy,

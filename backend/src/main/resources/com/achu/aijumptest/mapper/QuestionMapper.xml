@@ -42,7 +42,7 @@
             AND q.category_id = #{query.categoryId}
         </if>
         <if test="query.keyword != null and query.keyword!=''">
-            AND q.title LIKE CONCAT('%',#{keyword},'%')
+            AND q.title LIKE CONCAT('%',#{query.keyword},'%')
         </if>
         ORDER BY q.create_time DESC
     </select>

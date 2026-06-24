@@ -2,10 +2,32 @@
 <!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
         "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 <mapper namespace="com.achu.aijumptest.mapper.PaperQuestionMapper">
-    
-    <resultMap id="questions" type="com.achu.aijumptest.vo.QuestionDetailVO">
+
+    <!--
+        试卷详情中的题目映射。
+        注意：
+        1. 不用 q.* 自动映射，避免字段名冲突。
+        2. question_choices 是 LEFT JOIN，判断题/简答题没有选项。
+           notNullColumn="qc_id" 表示只有 qc_id 不为空时才创建 QuestionChoice 对象，
+           避免出现 {id:null, content:null} 的假选项。
+        3. realScore 来自 paper_question.score，表示题目在当前试卷中的实际分值。
+    -->
+    <resultMap id="questions" type="com.achu.aijumptest.vo.QuestionDetailVO" autoMapping="false">
         <id column="id" property="id"/>
-        <association property="questionAnswer" javaType="com.achu.aijumptest.entity.QuestionAnswer">
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="title" property="title"/>
+        <result column="type" property="type"/>
+        <result column="category_id" property="categoryId"/>
+        <result column="multi" property="multi"/>
+        <result column="difficulty" property="difficulty"/>
+        <result column="score" property="score"/>
+        <result column="analysis" property="analysis"/>
+        <result column="real_score" property="realScore"/>
+
+        <association property="questionAnswer"
+                     javaType="com.achu.aijumptest.entity.QuestionAnswer"
+                     autoMapping="false">
             <id column="qa_id" property="id"/>
             <result column="qa_question_id" property="questionId"/>
             <result column="qa_answer" property="answer"/>
@@ -13,42 +35,65 @@
             <result column="qa_create_time" property="createTime"/>
             <result column="qa_update_time" property="updateTime"/>
         </association>
-        <collection property="questionChoiceList" javaType="java.util.List"
-                    ofType="com.achu.aijumptest.entity.QuestionChoice" notNullColumn="qc_id">
+
+        <collection property="questionChoiceList"
+                    javaType="java.util.List"
+                    ofType="com.achu.aijumptest.entity.QuestionChoice"
+                    notNullColumn="qc_id"
+                    autoMapping="false">
             <id column="qc_id" property="id"/>
             <result column="qc_question_id" property="questionId"/>
             <result column="qc_content" property="content"/>
             <result column="qc_is_correct" property="isCorrect"/>
             <result column="qc_sort" property="sort"/>
+            <result column="qc_create_time" property="createTime"/>
+            <result column="qc_update_time" property="updateTime"/>
         </collection>
     </resultMap>
-    
+
     <select id="selectQuestions" resultMap="questions">
         SELECT
-            q.*,
-            qa.id qa_id,
-            qa.question_id qa_question_id,
-            qa.answer qa_answer,
-            qa.keywords qa_keywords,
-            qa.create_time qa_create_time,
-            qa.update_time qa_update_time,
-            qc.id qc_id,
-            qc.question_id qc_question_id,
-            qc.content qc_content,
-            qc.is_correct qc_is_correct,
-            qc.sort qc_sort,
-            qc.create_time qc_create_time,
-            qc.update_time qc_update_time,
-            pq.score real_score
-        FROM
-            paper_question pq
-                INNER JOIN questions q ON pq.question_id = q.id
-                INNER JOIN question_answer qa ON q.id = qa.question_id
-                LEFT JOIN question_choices qc ON q.id = qc.question_id AND qc.is_deleted = 0
-        WHERE
-            pq.paper_id = #{id} AND  pq.is_deleted = 0 AND q.is_deleted = 0 AND qa.is_deleted = 0
-        ORDER BY q.id,qc.sort;
-    </select>
+            q.id,
+            q.create_time,
+            q.update_time,
+            q.title,
+            q.type,
+            q.category_id,
+            q.multi,
+            q.difficulty,
+            q.score,
+            q.analysis,
 
+            pq.score AS real_score,
+
+            qa.id AS qa_id,
+            qa.question_id AS qa_question_id,
+            qa.answer AS qa_answer,
+            qa.keywords AS qa_keywords,
+            qa.create_time AS qa_create_time,
+            qa.update_time AS qa_update_time,
+
+            qc.id AS qc_id,
+            qc.question_id AS qc_question_id,
+            qc.content AS qc_content,
+            qc.is_correct AS qc_is_correct,
+            qc.sort AS qc_sort,
+            qc.create_time AS qc_create_time,
+            qc.update_time AS qc_update_time
+        FROM paper_question pq
+            INNER JOIN questions q
+                ON pq.question_id = q.id
+            INNER JOIN question_answer qa
+                ON q.id = qa.question_id
+            LEFT JOIN question_choices qc
+                ON q.id = qc.question_id
+                AND qc.is_deleted = 0
+        WHERE
+            pq.paper_id = #{id}
+            AND pq.is_deleted = 0
+            AND q.is_deleted = 0
+            AND qa.is_deleted = 0
+        ORDER BY q.id, qc.sort
+    </select>
 
 </mapper>

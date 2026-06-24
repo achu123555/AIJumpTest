@@ -7,8 +7,8 @@
       </button>
 
       <nav class="top-actions">
-        <el-button type="primary" :icon="DocumentChecked" @click="goTodo('考试入口')">考试入口</el-button>
-        <el-button :icon="Trophy" @click="goTodo('考试排行榜')">考试排行榜</el-button>
+        <el-button type="primary" :icon="DocumentChecked" @click="router.push('/exam/list')">考试入口</el-button>
+        <el-button :icon="Trophy" @click="router.push('/admin/ranking-manage')">考试排行榜</el-button>
         <el-button :icon="Setting" @click="router.push('/admin/banner-manage')">管理后台</el-button>
       </nav>
     </header>
@@ -152,7 +152,8 @@ const quickItems = [
     title: '开始考试',
     desc: '进入在线考试，提交后查看成绩',
     icon: DocumentChecked,
-    colorClass: 'blue'
+    colorClass: 'blue',
+    path: '/exam/list'
   },
   {
     title: '刷题练习',
@@ -165,7 +166,8 @@ const quickItems = [
     title: '学习排行',
     desc: '看看当前排名，也给自己一点动力',
     icon: Trophy,
-    colorClass: 'orange'
+    colorClass: 'orange',
+    path: '/admin/ranking-manage'
   },
   {
     title: '学习分析',

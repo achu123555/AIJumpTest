@@ -1,10 +1,13 @@
 package com.achu.aijumptest.service.impl;
 
 import com.achu.aijumptest.dto.QuestionDTO;
+import com.achu.aijumptest.entity.AnswerRecord;
 import com.achu.aijumptest.enums.QuestionType;
 import com.achu.aijumptest.exception.BusinessException;
 import com.achu.aijumptest.properties.DeepSeekProperties;
 import com.achu.aijumptest.service.AIService;
+import com.achu.aijumptest.vo.AiJudgeVO;
+import com.achu.aijumptest.vo.PaperVO;
 import com.achu.aijumptest.vo.QuestionDetailVO;
 import com.alibaba.fastjson2.JSONArray;
 import com.alibaba.fastjson2.JSONObject;
@@ -323,6 +326,262 @@ public class AIServiceImpl implements AIService {
 
     }
 
+
+
+    /**
+     * 调用 AI 批阅简答题。
+     *
+     * 关键点：
+     * 1. 满分使用 paper_question.score，也就是试卷中间表里的实际分数。
+     * 2. AI 只负责给简答题打分和生成批阅意见。
+     * 3. 如果 AI 返回格式不规范，后端兜底给 0 分，避免提交考试流程中断。
+     */
+    @Override
+    public AiJudgeVO.TextJudgeResult judgeTextAnswer(QuestionDetailVO question, String userAnswer, Integer maxScore) {
+        AiJudgeVO.TextJudgeResult fallback = new AiJudgeVO.TextJudgeResult();
+        fallback.setScore(0);
+        fallback.setCorrection("AI批阅失败或答案为空，本题暂记0分，请管理员复核。");
+
+        if (question == null || isBlank(userAnswer)) {
+            fallback.setCorrection("考生未作答，本题0分。");
+            return fallback;
+        }
+
+        int safeMaxScore = maxScore == null || maxScore < 0 ? 0 : maxScore;
+        if (safeMaxScore == 0) {
+            fallback.setCorrection("本题满分为0，系统自动记0分。");
+            return fallback;
+        }
+
+        String standardAnswer = question.getQuestionAnswer() == null ? "" : question.getQuestionAnswer().getAnswer();
+        String keywords = question.getQuestionAnswer() == null ? "" : question.getQuestionAnswer().getKeywords();
+
+        String prompt = """
+                你是一个严谨的在线考试阅卷老师，请批阅一道简答题。
+                你必须只返回 JSON 对象，不要返回 Markdown，不要返回代码块，不要返回解释说明。
+
+                【题目】
+                %s
+
+                【满分】
+                %s
+
+                【参考答案】
+                %s
+
+                【评分关键词】
+                %s
+
+                【考生答案】
+                %s
+
+                【评分要求】
+                1. score 必须是 0 到满分之间的整数。
+                2. 如果考生答案完全不相关，score 给 0。
+                3. 如果答案覆盖核心关键词但表达不完整，可以酌情给部分分。
+                4. correction 用中文，简短指出得分原因和改进建议。
+
+                【返回格式】
+                {"score": 分数, "correction": "批阅意见"}
+                """.formatted(
+                question.getTitle(),
+                safeMaxScore,
+                standardAnswer,
+                keywords,
+                userAnswer
+        );
+
+        try {
+            String content = callDeepSeekContent(prompt, 45);
+            String json = cleanJsonContent(content);
+            JSONObject object = JSONObject.parseObject(json);
+
+            Integer score = object.getInteger("score");
+            String correction = object.getString("correction");
+
+            if (score == null) {
+                score = 0;
+            }
+            score = Math.max(0, Math.min(score, safeMaxScore));
+
+            AiJudgeVO.TextJudgeResult result = new AiJudgeVO.TextJudgeResult();
+            result.setScore(score);
+            result.setCorrection(isBlank(correction) ? "AI已完成批阅。" : correction);
+            return result;
+        } catch (Exception e) {
+            log.error("【AI批阅】简答题AI批阅失败，题目ID：{}，考生答案：{}", question.getId(), userAnswer, e);
+            return fallback;
+        }
+    }
+
+    /**
+     * 生成整张试卷的 AI 综合评语。
+     *
+     * 这里不参与判分，只做学习反馈。AI失败时返回兜底评语，不影响交卷成功。
+     */
+    @Override
+    public String generateExamAppraisal(PaperVO.Detail paper, List<AnswerRecord> answerRecords, Integer totalScore) {
+        if (paper == null || ObjectUtils.isEmpty(answerRecords)) {
+            return "暂无足够作答数据生成评语。";
+        }
+
+        StringBuilder answerSummary = new StringBuilder();
+        for (AnswerRecord record : answerRecords) {
+            answerSummary.append("题目ID：").append(record.getQuestionId())
+                    .append("，得分：").append(record.getScore())
+                    .append("，是否正确：").append(record.getIsCorrect())
+                    .append("，批阅意见：").append(record.getAiCorrection())
+                    .append("\n");
+        }
+
+        String prompt = """
+                你是在线考试系统的学习分析助手，请根据考试结果生成一段中文综合评语。
+                要求：
+                1. 只返回普通中文文本，不要返回 JSON，不要返回 Markdown。
+                2. 100字以内。
+                3. 先总结整体表现，再指出薄弱点，最后给出复习建议。
+
+                【试卷名称】%s
+                【试卷总分】%s
+                【考生得分】%s
+                【作答明细】
+                %s
+                """.formatted(
+                paper.getName(),
+                paper.getTotalScore(),
+                totalScore,
+                answerSummary
+        );
+
+        try {
+            String appraisal = callDeepSeekContent(prompt, 45);
+            appraisal = appraisal == null ? "" : appraisal.trim()
+                    .replace("```", "")
+                    .replace("json", "")
+                    .trim();
+            return isBlank(appraisal) ? "考试已完成，建议结合错题继续复习。" : appraisal;
+        } catch (Exception e) {
+            log.error("【AI评语】生成考试综合评语失败", e);
+            return "考试已完成，建议结合错题继续复习，重点关注失分题对应的知识点。";
+        }
+    }
+
+    /**
+     * 通用的 DeepSeek 对话调用方法。
+     *
+     * 说明：
+     * - 复用当前项目的 webClient、模型、temperature、max_tokens 配置。
+     * - 发生 400/401/402 等明确业务错误时直接抛 BusinessException。
+     * - 发生网络波动时最多重试 3 次。
+     */
+    private String callDeepSeekContent(String prompt, int timeoutSeconds) {
+        Map<String, String> userMap = new HashMap<>();
+        userMap.put("role", "user");
+        userMap.put("content", prompt);
+
+        List<Map<String, String>> msgList = new ArrayList<>();
+        msgList.add(userMap);
+
+        Map<String, Object> requestBody = new HashMap<>();
+        requestBody.put("messages", msgList);
+        requestBody.put("model", deepSeekProperties.getModel());
+        requestBody.put("max_tokens", deepSeekProperties.getMaxTokens());
+        requestBody.put("temperature", deepSeekProperties.getTemperature());
+
+        Mono<String> mono = webClient.post()
+                .bodyValue(requestBody)
+                .retrieve()
+                .onStatus(
+                        status -> status.is4xxClientError() || status.is5xxServerError(),
+                        response -> response.bodyToMono(String.class)
+                                .map(errorBody -> {
+                                    log.error("【AI服务】DeepSeek接口异常，状态码：{}，响应内容：{}",
+                                            response.statusCode().value(), errorBody);
+                                    int statusCode = response.statusCode().value();
+                                    if (statusCode == 400) {
+                                        return new BusinessException("AI请求参数错误：" + errorBody);
+                                    }
+                                    if (statusCode == 401) {
+                                        return new BusinessException("AI认证失败，请检查 API Key！");
+                                    }
+                                    if (statusCode == 402) {
+                                        return new BusinessException("AI账户余额不足或额度不足！");
+                                    }
+                                    if (statusCode == 429) {
+                                        return new BusinessException("AI请求过于频繁，请稍后再试！");
+                                    }
+                                    if (statusCode >= 500) {
+                                        return new BusinessException("AI服务暂时不可用，请稍后再试！");
+                                    }
+                                    return new BusinessException("AI调用失败：" + errorBody);
+                                })
+                )
+                .bodyToMono(String.class)
+                .timeout(Duration.ofSeconds(timeoutSeconds));
+
+        String result = null;
+        for (int i = 1; i <= 3; i++) {
+            try {
+                result = mono.block();
+                if (!isBlank(result)) {
+                    break;
+                }
+            } catch (BusinessException e) {
+                throw e;
+            } catch (Exception e) {
+                if (i == 3) {
+                    throw new BusinessException("AI服务调用失败：" + e.getMessage());
+                }
+                log.warn("【AI服务】第 {} 次调用失败，正在重试...", i);
+                try {
+                    Thread.sleep(1000);
+                } catch (InterruptedException interruptedException) {
+                    Thread.currentThread().interrupt();
+                    throw new BusinessException("AI服务调用被中断！");
+                }
+            }
+        }
+
+        JSONObject parseObject = JSONObject.parseObject(result);
+        if (parseObject == null) {
+            throw new BusinessException("AI服务返回结果解析失败！");
+        }
+        JSONArray choices = parseObject.getJSONArray("choices");
+        if (choices == null || choices.isEmpty()) {
+            throw new BusinessException("大模型未返回有效的 choices 字段！");
+        }
+        return choices.getJSONObject(0)
+                .getJSONObject("message")
+                .getString("content");
+    }
+
+    /**
+     * 清理 AI 可能返回的 Markdown 代码块，并提取 JSON 对象或数组。
+     */
+    private String cleanJsonContent(String content) {
+        if (content == null) {
+            return "";
+        }
+        String text = content.trim()
+                .replace("```json", "")
+                .replace("```JSON", "")
+                .replace("```", "")
+                .trim();
+
+        int objectStart = text.indexOf("{");
+        int objectEnd = text.lastIndexOf("}");
+        if (objectStart >= 0 && objectEnd > objectStart) {
+            return text.substring(objectStart, objectEnd + 1);
+        }
+
+        int arrayStart = text.indexOf("[");
+        int arrayEnd = text.lastIndexOf("]");
+        if (arrayStart >= 0 && arrayEnd > arrayStart) {
+            return text.substring(arrayStart, arrayEnd + 1);
+        }
+
+        return text;
+    }
 
     /**
      * 规范化题型。
