@@ -10,6 +10,7 @@ import com.achu.aijumptest.mapper.PaperQuestionMapper;
 import com.achu.aijumptest.service.PaperService;
 import com.achu.aijumptest.vo.PaperVO;
 import com.achu.aijumptest.vo.QuestionDetailVO;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.toolkit.ObjectUtils;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import lombok.RequiredArgsConstructor;
@@ -21,7 +22,7 @@ import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
-import java.util.Map;
+
 
 /**
  * projectName: com.achu.aijumptest.service.impl.PaperServiceImpl
@@ -37,7 +38,7 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
     private final PaperQuestionMapper paperQuestionMapper;
 
     @Override
-    public PaperVO.Detail getDetailPaper(Long id) {
+    public PaperVO.Detail getDetailPaper(Integer id) {
         //1.查询试卷
         Paper paper = baseMapper.selectById(id);
         if(paper == null){
@@ -68,13 +69,13 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
 
     @Transactional
     @Override
-    public Paper createPaper(PaperDTO.Save save) {
+    public Paper createPaper(PaperDTO.Create create) {
         //1.先保存paper对象获取回显id
 
         //情况一：没有题目
-        Paper paper = BeanUtil.copyProperties(save, Paper.class);
+        Paper paper = BeanUtil.copyProperties(create, Paper.class);
         paper.setStatus("DRAFT");
-        if(ObjectUtils.isEmpty(save.getQuestions())){
+        if(ObjectUtils.isEmpty(create.getQuestions())){
             //没有选择题目
             paper.setTotalScore(BigDecimal.ZERO);
             paper.setQuestionCount(0);
@@ -83,26 +84,97 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
             return paper;
         }
         //情况二：有题目 → set题目 数量和总分
-        paper.setQuestionCount(save.getQuestions().size());
-        paper.setTotalScore(save.getQuestions()
+        paper.setQuestionCount(create.getQuestions().size());
+        paper.setTotalScore(create.getQuestions()
                 .values()
                 .stream()
                 .reduce(BigDecimal.ZERO,BigDecimal::add)
         );
         baseMapper.insert(paper);
         //2.得到paper回显的id 开始插入中间表
-        List<PaperQuestion> paperQuestions = save.getQuestions()
+        List<PaperQuestion> paperQuestions = ToPaperQuestions(create, paper);
+        paperQuestionMapper.insert(paperQuestions);
+        return paper;
+    }
+
+    @Override
+    public Paper intelligentCreatePaper(PaperDTO.IntelligentCreate create) {
+        // 1.拷贝智能组卷相同参数到paper类,并设置初始状态
+        Paper paper = BeanUtil.copyProperties(create, Paper.class);
+        paper.setStatus("DRAFT");
+        // 2.循环组卷规则
+        //TODO
+        return null;
+    }
+
+    @Transactional
+    @Override
+    public Paper update(Integer id, PaperDTO.Create update) {
+
+
+        //1.基本校验（X不同id同名,X试卷状态为PUBLISHED[实际状态以在数据库中的试卷为准]）
+        Paper paper = baseMapper.selectById(id);
+        if(paper == null){
+            throw new BusinessException("找不到该试卷！");
+        }
+        if("PUBLISHED".equals(paper.getStatus())){
+            throw new BusinessException("该试卷正处于发布状态,不可编辑！");
+        }
+        boolean exists = baseMapper.exists(
+                new LambdaQueryWrapper<Paper>()
+                        .ne(Paper::getId, paper.getId())
+                        .eq(Paper::getName, update.getName())
+        );
+        if(exists){
+            throw new BusinessException("该试卷名称已存在,请勿重复提交！");
+        }
+        BeanUtil.copyProperties(update,paper);
+
+        //2.校验是否选择了题目
+        boolean hasQuestions = !ObjectUtils.isEmpty(update.getQuestions());
+        if (!hasQuestions) {
+            //情况一：没有题目
+            paper.setTotalScore(BigDecimal.ZERO);
+            paper.setQuestionCount(0);
+            log.warn("本次id为{}的试卷更新没有选择题目！", id);
+        } else {
+            //情况二：有题目,设置题目数量和总分数
+            paper.setQuestionCount(update.getQuestions().size());
+            paper.setTotalScore(update.getQuestions()
+                    .values()
+                    .stream()
+                    .reduce(BigDecimal.ZERO, BigDecimal::add)
+            );
+        }
+        // 3.更新试卷主表
+        baseMapper.updateById(paper);
+
+        // 4.清除该试卷原有的所有中间表关联记录
+        paperQuestionMapper.delete(
+                new LambdaQueryWrapper<PaperQuestion>()
+                        .eq(PaperQuestion::getPaperId, id)
+        );
+
+        // 5.如果有新题目，开始连环重建中间表
+        if (hasQuestions) {
+            List<PaperQuestion> paperQuestions = ToPaperQuestions(update, paper);
+            paperQuestionMapper.insert(paperQuestions);
+        }
+
+        return paper;
+    }
+
+    private List<PaperQuestion> ToPaperQuestions(PaperDTO.Create update, Paper paper) {
+        return update.getQuestions()
                 .entrySet()
                 .stream()
                 .map(entry -> {
                     PaperQuestion paperQuestion = new PaperQuestion();
                     paperQuestion.setPaperId(paper.getId());
                     paperQuestion.setQuestionId(Long.valueOf(entry.getKey()));
-                    paperQuestion.setScore(entry.getKey().doubleValue());
+                    paperQuestion.setScore(entry.getValue().doubleValue());
                     return paperQuestion;
                 }).toList();
-        paperQuestionMapper.insert(paperQuestions);
-        return paper;
     }
 
     /**

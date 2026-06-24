@@ -18,5 +18,5 @@ import java.util.List;
 @Mapper
 public interface PaperQuestionMapper extends BaseMapper<PaperQuestion> {
 
-    List<QuestionDetailVO> selectQuestions(@Param("id") Long id);
+    List<QuestionDetailVO> selectQuestions(@Param("id") Integer id);
 }

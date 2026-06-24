@@ -22,7 +22,7 @@ public class Paper extends BaseEntity<Integer>{
     private String name;
     @Schema(description = "试卷描述")
     private String description;
-    @Schema(description = "试卷状态",example = "DRAFT",allowableValues = {"DRAFT","PUBLISHED",""})
+    @Schema(description = "试卷状态",example = "DRAFT",allowableValues = {"DRAFT","PUBLISHED","EXPIRE"})
     private String status;
     @Schema(description = "试卷总分")
     private BigDecimal totalScore;

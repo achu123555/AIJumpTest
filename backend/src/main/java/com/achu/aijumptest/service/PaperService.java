@@ -19,13 +19,28 @@ public interface PaperService extends IService<Paper> {
      *
      * @return 试卷详情对象
      */
-    PaperVO.Detail getDetailPaper(Long id);
+    PaperVO.Detail getDetailPaper(Integer id);
 
     /**
-     * 创建并保存试卷
+     * 手动组卷并保存
      *
-     * @param save 要保存的试卷参数
+     * @param create 要保存的试卷参数
      * @return 组装后保存的试卷
      */
-    Paper createPaper(PaperDTO.Save save);
+    Paper createPaper(PaperDTO.Create create);
+
+    /**
+     * 智能组卷
+     * @param create 智能组卷的参数
+     * @return 组装后保存的试卷
+     */
+    Paper intelligentCreatePaper(PaperDTO.IntelligentCreate create);
+
+    /**
+     * 更新试卷
+     * @param id 试卷id
+     * @param update 更新的试卷DTO
+     * @return 更新后的试卷
+     */
+    Paper update(Integer id, PaperDTO.Create update);
 }

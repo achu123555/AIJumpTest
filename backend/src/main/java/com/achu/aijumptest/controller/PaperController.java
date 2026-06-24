@@ -47,7 +47,7 @@ public class PaperController {
 
     @GetMapping("/{id}")
     @Operation(summary = "试卷详情接口",description = "查询试卷的详情信息包括题目及答案选项")
-    public Result<PaperVO.Detail> getById(@Parameter(description = "试卷id") @PathVariable("id") Long id){
+    public Result<PaperVO.Detail> getById(@Parameter(description = "试卷id") @PathVariable("id") Integer id){
         log.info("要查询试卷详情的试卷id为:{}",id);
         PaperVO.Detail detailPaper = paperService.getDetailPaper(id);
 
@@ -55,11 +55,30 @@ public class PaperController {
     }
 
     @PostMapping
-    @Operation(summary = "创建试卷接口")
-    public Result<Paper> createPaper(@RequestBody PaperDTO.Save save){
-        log.info("开始创建试卷,内容为：{}",save);
-        Paper paper = paperService.createPaper(save);
+    @Operation(summary = "手动组卷接口")
+    public Result<Paper> createPaper(@RequestBody PaperDTO.Create create){
+        log.info("开始创建试卷,内容为：{}", create);
+        Paper paper = paperService.createPaper(create);
+        return Result.success(paper);
+    }
 
+    @PostMapping("/intelligent")
+    @Operation(summary = "智能组卷接口")
+    public Result<Paper> intelligentCreatePaper(@RequestBody PaperDTO.IntelligentCreate create){
+        log.info("智能组卷开始,参数为：{}",create);
+        Paper paper = paperService.intelligentCreatePaper(create);
+        //TODO
+        return null;
+    }
+
+    @PutMapping("/{id}")
+    @Operation(summary = "编辑试卷接口")
+    public Result<Paper> update(
+            @Parameter(description = "试卷id") @PathVariable("id") Integer id,
+            @RequestBody PaperDTO.Create update
+    ){
+        log.info("开始更新试卷,试卷id为：{},更改信息为：{}",id,update);
+        Paper paper = paperService.update(id,update);
         return Result.success(paper);
     }
 }
