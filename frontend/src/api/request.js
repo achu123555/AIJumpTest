@@ -1,4 +1,5 @@
 import axios from 'axios'
+import { getAuthUser, clearAuthUser } from '../utils/auth'
 
 const SUCCESS_CODE = 200
 
@@ -14,7 +15,18 @@ const service = axios.create({
 })
 
 service.interceptors.request.use(
-  config => config,
+  config => {
+    const user = getAuthUser()
+    if (user?.token) {
+      // 标准 JWT 写法：Authorization: Bearer token。
+      config.headers.Authorization = `Bearer ${user.token}`
+
+      // 兼容旧版后端拦截器，保留 X-Auth-Token 不影响新版本。
+      config.headers['X-Auth-Token'] = user.token
+      config.headers['X-Auth-Role'] = user.role
+    }
+    return config
+  },
   error => Promise.reject(error)
 )
 
@@ -31,6 +43,12 @@ service.interceptors.response.use(
     // 兼容后端统一返回格式：{ code, message, data, timestamp }
     if (result && typeof result === 'object' && Object.prototype.hasOwnProperty.call(result, 'code')) {
       if (Number(result.code) !== SUCCESS_CODE) {
+        if (Number(result.code) === 401) {
+          clearAuthUser()
+          if (window.location.pathname !== '/home') {
+            window.location.href = `/home?login=1&redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
+          }
+        }
         return Promise.reject(new Error(result.message || result.msg || '接口请求失败'))
       }
       return result.data
@@ -41,6 +59,13 @@ service.interceptors.response.use(
   error => {
     const response = error.response
     const data = response?.data
+    if (response?.status === 401) {
+      clearAuthUser()
+      if (window.location.pathname !== '/home') {
+        window.location.href = `/home?login=1&redirect=${encodeURIComponent(window.location.pathname + window.location.search)}`
+      }
+    }
+
     const message =
       data?.message ||
       data?.msg ||

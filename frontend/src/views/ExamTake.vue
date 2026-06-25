@@ -340,8 +340,25 @@ onBeforeUnmount(() => {
 
 .option-list :deep(.el-radio),
 .option-list :deep(.el-checkbox) {
-  width: 320px;
+  /* 选项内容可能很长，不能固定 320px，否则文字会越框。 */
+  width: min(100%, 620px);
+  height: auto;
+  min-height: 42px;
   margin-right: 0;
+  display: flex;
+  align-items: flex-start;
+  padding: 10px 14px;
+  white-space: normal;
+}
+
+.option-list :deep(.el-radio__label),
+.option-list :deep(.el-checkbox__label) {
+  flex: 1;
+  min-width: 0;
+  white-space: normal;
+  word-break: break-word;
+  overflow-wrap: anywhere;
+  line-height: 1.55;
 }
 
 .judge-options {
