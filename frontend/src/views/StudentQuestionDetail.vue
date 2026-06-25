@@ -2,8 +2,8 @@
   <main class="question-detail-page">
     <header class="student-topbar">
       <button class="brand" type="button" @click="router.push('/home')">
-        <span class="brand-mark">学</span>
-        <span class="brand-text">智学平台</span>
+        <span class="brand-mark">Test</span>
+        <span class="brand-text">AIJumpTest</span>
       </button>
       <nav class="top-actions">
         <el-button plain @click="router.push('/questions')">返回题库</el-button>

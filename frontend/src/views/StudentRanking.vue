@@ -2,7 +2,7 @@
   <section class="ranking-home">
     <header class="top-bar">
       <button class="brand" type="button" @click="router.push('/home')">
-        <span class="brand-mark">学</span>
+        <span class="brand-mark">Test</span>
         <span class="brand-text">AIJumpTest</span>
       </button>
       <nav class="top-actions">
