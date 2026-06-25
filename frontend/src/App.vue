@@ -14,14 +14,6 @@
         text-color="#1f2329"
         active-text-color="#2674ff"
       >
-        <el-menu-item index="/home">
-          <el-icon><House /></el-icon>
-          <span>学生端首页</span>
-        </el-menu-item>
-        <el-menu-item index="/exam/list">
-          <el-icon><EditPen /></el-icon>
-          <span>开始考试</span>
-        </el-menu-item>
         <el-menu-item index="/admin/question-manage">
           <el-icon><Document /></el-icon>
           <span>题目管理</span>
@@ -46,18 +38,6 @@
           <el-icon><Picture /></el-icon>
           <span>轮播图管理</span>
         </el-menu-item>
-        <el-menu-item index="/admin/notice-manage">
-          <el-icon><Bell /></el-icon>
-          <span>公告管理</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/video-manage">
-          <el-icon><VideoPlay /></el-icon>
-          <span>视频管理</span>
-        </el-menu-item>
-        <el-menu-item index="/admin/video-category">
-          <el-icon><Tickets /></el-icon>
-          <span>视频分类</span>
-        </el-menu-item>
       </el-menu>
     </el-aside>
 
@@ -65,10 +45,18 @@
       <el-header class="admin-header">
         <div class="header-left">
           <el-icon><Grid /></el-icon>
+          <span>AIJumpTest 管理后台</span>
         </div>
         <div class="header-right">
           <el-button size="small" plain @click="router.push('/home')">查看学生端</el-button>
-          <el-tag type="info" effect="plain">后端接口版</el-tag>
+          <el-dropdown trigger="click" @command="handleCommand">
+            <span class="admin-user">{{ user?.nickname || user?.username || '管理员' }}</span>
+            <template #dropdown>
+              <el-dropdown-menu>
+                <el-dropdown-item command="logout">退出登录</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </el-header>
 
@@ -84,24 +72,22 @@
 <script setup>
 import { computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
-import {
-  Bell,
-  Collection,
-  Document,
-  EditPen,
-  Folder,
-  Grid,
-  House,
-  Medal,
-  Picture,
-  Tickets,
-  Trophy,
-  VideoPlay
-} from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+import { Collection, Document, Folder, Grid, Medal, Picture, Trophy } from '@element-plus/icons-vue'
+import { clearAuthUser, getAuthUser } from './utils/auth'
 
 const route = useRoute()
 const router = useRouter()
 const showAdminLayout = computed(() => route.path.startsWith('/admin'))
+const user = computed(() => getAuthUser())
+
+function handleCommand(command) {
+  if (command === 'logout') {
+    clearAuthUser()
+    ElMessage.success('已退出登录')
+    router.replace('/home')
+  }
+}
 </script>
 
 <style scoped>
@@ -159,16 +145,24 @@ const showAdminLayout = computed(() => route.path.startsWith('/admin'))
   padding: 0 16px;
 }
 
-.header-left {
-  display: flex;
-  align-items: center;
-  font-size: 18px;
-}
-
+.header-left,
 .header-right {
   display: flex;
   align-items: center;
   gap: 12px;
+}
+
+.header-left {
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.admin-user {
+  display: inline-flex;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid #dcdfe6;
+  cursor: pointer;
 }
 
 .admin-main {

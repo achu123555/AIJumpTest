@@ -43,9 +43,8 @@ public class GlobalExceptionHandler {
 
     @ExceptionHandler
     public Result<Void> businessException(BusinessException businessException){
-        //记录异常日志
-        log.warn("【服务器运行时发生业务异常！】异常信息为：{}",businessException.getMessage());
-        //返回错误信息
-        return Result.error(businessException.getMessage());
+        // 业务异常保留原始状态码，例如 401 未登录、403 无权限、400 参数错误。
+        log.warn("【服务器运行时发生业务异常！】异常码：{}，异常信息为：{}", businessException.getCode(), businessException.getMessage());
+        return Result.error(businessException.getCode(), businessException.getMessage());
     }
 }

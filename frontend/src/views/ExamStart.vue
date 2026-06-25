@@ -42,8 +42,8 @@ import { onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { Document, Timer, Trophy } from '@element-plus/icons-vue'
-import { getPaperDetail } from '../api/paper'
-import { startExam } from '../api/exam'
+import { getExamPaperList, startExam } from '../api/exam'
+import { getAuthUser } from '../utils/auth'
 
 const route = useRoute()
 const router = useRouter()
@@ -51,7 +51,8 @@ const formRef = ref(null)
 const loading = ref(false)
 const submitting = ref(false)
 const paper = reactive({})
-const form = reactive({ studentName: '' })
+const authUser = getAuthUser()
+const form = reactive({ studentName: authUser?.role === 'STUDENT' ? (authUser?.nickname || authUser?.username || '') : '' })
 
 const rules = {
   studentName: [
@@ -63,8 +64,15 @@ const rules = {
 async function loadPaper() {
   loading.value = true
   try {
-    const detail = await getPaperDetail(route.params.paperId)
-    Object.assign(paper, detail || {})
+    // 学生端不直接调用管理端 /api/papers/{id}，而是从已发布试卷列表中取当前试卷。
+    const list = await getExamPaperList()
+    const detail = Array.isArray(list) ? list.find(item => Number(item.id) === Number(route.params.paperId)) : null
+    if (!detail) {
+      ElMessage.error('该试卷不存在或未发布')
+      router.replace('/exam/list')
+      return
+    }
+    Object.assign(paper, detail)
   } catch (error) {
     ElMessage.error(error.message || '加载试卷失败')
   } finally {

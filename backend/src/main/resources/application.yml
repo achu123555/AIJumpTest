@@ -7,9 +7,9 @@ spring:
   #数据库配置
   datasource:
     driver-class-name: com.mysql.cj.jdbc.Driver
-    url: "jdbc:mysql://localhost:3306/ai_jump_test"
-    username: root
-    password: 5201314
+    url: ${MYSQL_URL:}
+    username: ${MYSQL_USERNAME:}
+    password: ${MYSQL_PASSWORD:}
   #spring自带的检测文件大小限制
   servlet:
     multipart:
@@ -18,7 +18,7 @@ spring:
   #redis配置
   data:
     redis:
-      host: 192.168.158.128
+      host: ${REDIS_HOST:}
       port: 6379
 
 #mybatis-plus配置
@@ -32,8 +32,8 @@ mybatis-plus:
 #阿里云OSS参数
 aliyun:
   oss:
-    endpoint: https://oss-cn-beijing.aliyuncs.com
-    bucketName: ai-jumptest
+    endpoint: ${ALIYUN_OSS_ENDPOINT:}
+    bucketName: ${ALIYUN_OSS_BUCKET:}
 
 #关闭异常处理器响应体通用重写，绕过报错代码
 springdoc:
@@ -47,3 +47,8 @@ deepseek:
     model: deepseek-v4-flash
     max-tokens: 2048
     temperature: 0.3
+
+# JWT登录配置
+jwt:
+  secret: ${JWT_SECRET:}
+  expire-minutes: 120
