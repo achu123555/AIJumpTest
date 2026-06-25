@@ -30,13 +30,6 @@ public interface PaperService extends IService<Paper> {
     Paper createPaper(PaperDTO.Create create);
 
     /**
-     * 智能组卷
-     * @param create 智能组卷的参数
-     * @return 组装后保存的试卷
-     */
-    Paper intelligentCreatePaper(PaperDTO.IntelligentCreate create);
-
-    /**
      * 更新试卷
      * @param id 试卷id
      * @param update 更新的试卷DTO

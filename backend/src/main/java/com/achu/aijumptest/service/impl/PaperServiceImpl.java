@@ -100,16 +100,6 @@ public class PaperServiceImpl extends ServiceImpl<PaperMapper, Paper> implements
         return paper;
     }
 
-    @Override
-    public Paper intelligentCreatePaper(PaperDTO.IntelligentCreate create) {
-        // 1.拷贝智能组卷相同参数到paper类,并设置初始状态
-        Paper paper = BeanUtil.copyProperties(create, Paper.class);
-        paper.setStatus("DRAFT");
-        // 2.循环组卷规则
-        //TODO
-        return null;
-    }
-
     @Transactional
     @Override
     public Paper update(Integer id, PaperDTO.Create update) {

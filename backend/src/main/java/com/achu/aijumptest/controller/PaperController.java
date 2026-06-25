@@ -62,15 +62,6 @@ public class PaperController {
         return Result.success(paper);
     }
 
-    @PostMapping("/intelligent")
-    @Operation(summary = "智能组卷接口")
-    public Result<Paper> intelligentCreatePaper(@RequestBody PaperDTO.IntelligentCreate create){
-        log.info("智能组卷开始,参数为：{}",create);
-        Paper paper = paperService.intelligentCreatePaper(create);
-        //TODO
-        return null;
-    }
-
     @PutMapping("/{id}")
     @Operation(summary = "编辑试卷接口")
     public Result<Paper> update(
